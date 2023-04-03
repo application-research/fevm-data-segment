@@ -12,22 +12,29 @@ contract Inclusion {
         return MerkleProof.verify(proof, root, leaf);
     }
 
-    function computeRoot(bytes32 leaf, bytes32[] memory proof, uint256 height) public pure returns (bytes32) {
-        require(proof.length == height, "Invalid proof length");
+    struct ProofData {
+        uint256 index;
+        bytes32[] path;
+    }
 
-        bytes32 currentHash = leaf;
+    function computeRoot(ProofData memory d, bytes32 subtree) public pure returns (bytes32) {
+        require(d.path.length < 64, "merkleproofs with depths greater than 63 are not supported");
+        require(d.index >> d.path.length == 0, "index greater than width of the tree");
+        
+        bytes32 carry = subtree;
+        uint256 index = d.index;
+        uint256 right = 0;
 
-        for (uint256 i = 0; i < proof.length; i++) {
-            bytes32 siblingHash = proof[i];
-
-            if ((height >> i) & 1 == 1) {
-                currentHash = keccak256(abi.encodePacked(siblingHash, currentHash));
+        for (uint256 i = 0; i < d.path.length; i++) {
+            (right, index) = (index & 1, index >> 1);
+            if (right == 1) {
+                carry = keccak256(abi.encodePacked(d.path[i], carry));
             } else {
-                currentHash = keccak256(abi.encodePacked(currentHash, siblingHash));
+                carry = keccak256(abi.encodePacked(carry, d.path[i]));
             }
         }
 
-        return currentHash;
+        return carry;
     }
 
 }
