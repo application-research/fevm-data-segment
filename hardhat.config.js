@@ -20,8 +20,13 @@ module.exports = {
     mocha: {
       timeout: 100000000,
     },
-    defaultNetwork: "Hyperspace",
+    defaultNetwork: "hardhat",
     networks: {
+        hardhat: {
+          // For in-memory testing, set the blockGasLimit to a high value
+          // so that you don't run into gas limit errors.
+          blockGasLimit: 100000000,
+        },
         Hyperspace: {
             chainId: 3141,
             url: "https://api.hyperspace.node.glif.io/rpc/v1",
