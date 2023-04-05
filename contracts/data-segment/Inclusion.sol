@@ -11,11 +11,6 @@ contract MerkleTree {
         bytes32 data;
     }
 
-    struct ProofData {
-        Node[] path;
-        uint64 index;
-    }
-
     struct TreeData {
         Node[][] nodes;
         uint64 leafs;
@@ -23,15 +18,15 @@ contract MerkleTree {
 
     TreeData public tree;
     
-    constructor(uint64 leafs) public {
-        tree = newBareTree(leafs);
+    constructor(uint64 _leafs) {
+        tree = newBareTree(_leafs);
     }
 
-    function newBareTree(uint64 leafs) internal pure returns (TreeData memory) {
-        uint256 adjustedLeafs = 1 << Log2Ceil(leafs);
+    function newBareTree(uint64 _leafs) internal pure returns (TreeData memory) {
+        uint256 adjustedLeafs = 1 << Log2Ceil(_leafs);
         TreeData memory tree;
         tree.nodes = new Node[][](1 + Log2Ceil(uint64(adjustedLeafs)));
-        tree.leafs = leafs;
+        tree.leafs = _leafs;
         for (uint256 i = 0; i <= Log2Ceil(uint64(adjustedLeafs)); i++) {
             tree.nodes[i] = new Node[](1 << i);
         }
@@ -47,19 +42,45 @@ contract MerkleTree {
         return nodes;
     }
 */
-    function computeNode(Node memory left, Node memory right) internal pure returns (Node memory) {
-        bytes memory data = abi.encodePacked(left.data, right.data);
+    function computeNode(Node memory _left, Node memory _right) internal pure returns (Node memory) {
+        bytes memory data = abi.encodePacked(_left.data, _right.data);
         return Node(sha256(data));
     }
 
-    function getSiblingIdx(uint64 idx) internal pure returns (uint64) {
-        if (idx % 2 == 0) {
-            return idx + 1;
+    function getSiblingIdx(uint64 _idx) internal pure returns (uint64) {
+        if (_idx % 2 == 0) {
+            return _idx + 1;
         } else {
-            return idx - 1;
+            return _idx - 1;
         }
     }
 
+    // Proof data is a list of nodes that are on the path from the leaf to the root
+    struct ProofData {
+        Node[] path;
+        uint64 index;
+    }
+
+    function computeRoot(ProofData memory _proof, Node memory subtree) public pure returns (Node memory) {
+        require(_proof.path.length <= 63, "merkleproofs with depths greater than 63 are not supported");
+        require(_proof.index < (1 << _proof.path.length), "index greater than width of the tree");
+
+        Node memory carry = subtree;
+        uint64 index = _proof.index;
+        uint64 right = 0;
+
+        for (uint256 i = 0; i < _proof.path.length; i++) {
+            Node memory p = _proof.path[i];
+            (right, index) = (index & 1, index >> 1);
+            if (right == 1) {
+                carry = computeNode(p, carry);
+            } else {
+                carry = computeNode(carry, p);
+            }
+        }
+
+        return carry;
+    }
     
     function DeserializeTree(bytes memory tree) internal pure returns (TreeData memory) {
         require(tree.length >= 8, "error in tree encoding, does not contain level 0");
@@ -75,9 +96,7 @@ contract MerkleTree {
         lvlSize = uint64(1 << Log2Ceil(lvlSize));
         uint256 ctr = 8;
         for (uint256 i = decoded.nodes.length - 1; i >= 0; i--) {
-            if (tree.length < ctr + NodeSize * uint256(lvlSize)) {
-                return (TreeData(new Node[][](0), 0), "error in tree encoding, does not contain level i");
-            }
+            require(tree.length >= ctr + NodeSize * uint256(lvlSize), "error in tree encoding, does not contain level i");
             Node[] memory currentLvl = new Node[](lvlSize);
             for (uint256 j = 0; j < lvlSize; j++) {
                 Node memory node;
