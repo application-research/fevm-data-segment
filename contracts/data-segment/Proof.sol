@@ -4,7 +4,7 @@ pragma solidity ^0.8.9;
 // Uncomment this line to use console.log
 import "hardhat/console.sol";
 
-contract Inclusion {
+contract Proof {
 
     struct Node {
         bytes32 data;
@@ -26,9 +26,9 @@ contract Inclusion {
         for (uint256 i = 0; i < d.path.length; i++) {
             (right, index) = (index & 1, index >> 1);
             if (right == 1) {
-                carry = truncate(computeNode(d.path[i], carry));
+                carry = computeNode(d.path[i], carry);
             } else {
-                carry = truncate(computeNode(carry, d.path[i]));
+                carry = computeNode(carry, d.path[i]);
             }
         }
 
@@ -36,14 +36,14 @@ contract Inclusion {
     }
 
     function computeNode(Node memory left, Node memory right) internal pure returns (Node memory) {
-        bytes memory data = abi.encodePacked(left.data, right.data);
-        return Node(sha256(data));
+        bytes32 digest = sha256(abi.encodePacked(left.data, right.data));
+        Node memory result = Node(digest);
+        return truncate(result);
     }
 
-    function truncate(Node memory n) public pure returns (Node memory) {
-        // Clear the two most significant bits of the last byte
-        n.data &= bytes32(0x3fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff);
-        return n;
+    function truncate(Node memory n) internal pure returns (Node memory) {
+        bytes32 mask = 0x3fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+        bytes32 newData = n.data & mask;
+        return Node(newData);
     }
-
 }
