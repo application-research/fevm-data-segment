@@ -11,7 +11,7 @@ contract Proof {
     }
 
     struct ProofData {
-        uint256 index;
+        uint64 index;
         Node[] path;
     }
 
@@ -20,10 +20,10 @@ contract Proof {
         require(d.index >> d.path.length == 0, "index greater than width of the tree");
         
         Node memory carry = subtree;
-        uint256 index = d.index;
-        uint256 right = 0;
+        uint64 index = d.index;
+        uint64 right = 0;
 
-        for (uint256 i = 0; i < d.path.length; i++) {
+        for (uint64 i = 0; i < d.path.length; i++) {
             (right, index) = (index & 1, index >> 1);
             if (right == 1) {
                 carry = computeNode(d.path[i], carry);
@@ -35,15 +35,16 @@ contract Proof {
         return carry;
     }
 
-    function computeNode(Node memory left, Node memory right) internal pure returns (Node memory) {
-        bytes32 digest = sha256(abi.encodePacked(left.data, right.data));
-        Node memory result = Node(digest);
-        return truncate(result);
+    function computeNode(Node memory left, Node memory right) public pure returns (Node memory) {
+        bytes32 sha = sha256(abi.encodePacked(left.data, right.data));
+        return truncate(Node(sha));
     }
 
     function truncate(Node memory n) internal pure returns (Node memory) {
-        bytes32 mask = 0x3fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
-        bytes32 newData = n.data & mask;
-        return Node(newData);
+        bytes32 truncatedData = n.data;
+        // Set the two lowest-order bits of the last byte to 0
+        truncatedData &= 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc;
+        Node memory result = Node(truncatedData);
+        return result;
     }
 }

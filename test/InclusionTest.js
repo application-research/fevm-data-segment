@@ -11,45 +11,29 @@ describe("Inclusion Tests", function () {
         this.inclusion = await deploy('Proof');
     });
 
-    it("Compute Root", async function () {
+    it("Should compute the correct Node", async function () {
+        // Define the input data for the function
+        const left = { data: Buffer.from("0100000000000000000000000000000000000000000000000000000000000000", "hex") };
+        const right = { data: Buffer.from("0200000000000000000000000000000000000000000000000000000000000000", "hex") };
 
-        //  subtree: Node{0x1},
-		// 	path:    []Node{{0x2}, {0x3}},
-		// 	index:   0,
-		// 	root: Node{
-		// 		0xaa, 0x96, 0x27, 0x47, 0xb, 0x12, 0x9f, 0xab, 0xd, 0xb1, 0x26, 0xd, 0xa8, 0x0,
-		// 		0x65, 0xa1, 0xbd, 0xd3, 0x1b, 0x4a, 0xcc, 0x4c, 0x79, 0x12, 0x1f, 0x2e, 0x1b, 0xa8,
-		// 		0x48, 0x7d, 0x1f, 0x30},
+        const result = await this.inclusion.computeNode(left, right);
+        const expectedMerge = "0xff55c97976a840b4ced964ed49e3794594ba3f675238b5fd25d282b60f70a194";  
+        expect(result.data).to.equal(expectedMerge);
+      });
 
+      
+    it("Should compute the correct Merkle root", async function () {
+        // Define the input data for the function
         const proof = {
-            index: 0,
-            path: [
-                { data: Buffer.alloc(32).fill(0x2) },
-                { data: Buffer.alloc(32).fill(0x3) },
-            ],
+          index: 0,
+          path: [
+            { data: Buffer.from("0200000000000000000000000000000000000000000000000000000000000000", "hex") },
+            { data: Buffer.from("0300000000000000000000000000000000000000000000000000000000000000", "hex") },
+          ],
         };
-          
-        const subtree = {
-            data: Buffer.alloc(32).fill(0x1)
-        };
-
-        // const proof = {
-        //     index: 0,
-        //     path: [
-        //       { data: "0x0200000000000000000000000000000000000000000000000000000000000000" },
-        //       { data: "0x0300000000000000000000000000000000000000000000000000000000000000" },
-        //     ],
-        // };
-          
-        // const subtree = {
-        //     data: "0x0100000000000000000000000000000000000000000000000000000000000000"
-        // }
-
+        const subtree = { data: Buffer.from("0100000000000000000000000000000000000000000000000000000000000000", "hex") };
+        const result = await this.inclusion.computeRoot(proof, subtree);
         const expectedRoot = "0xaa9627470b129fab0db1260da80065a1bdd31b4acc4c79121f2e1ba8487d1f30";  
-
-        const computeRoot = await this.inclusion.computeRoot(proof, subtree);
-        
-        expect(computeRoot.data).to.equal(expectedRoot);
+        expect(result.data).to.equal(expectedRoot);
     });
-
 });
