@@ -36,15 +36,35 @@ contract Proof {
     }
 
     function computeNode(Node memory left, Node memory right) public pure returns (Node memory) {
-        bytes32 sha = sha256(abi.encodePacked(left.data, right.data));
-        return truncate(Node(sha));
+        bytes32 digest = sha256(abi.encodePacked(left.data, right.data));
+        return truncate(Node(digest));
     }
 
     function truncate(Node memory n) internal pure returns (Node memory) {
         bytes32 truncatedData = n.data;
         // Set the two lowest-order bits of the last byte to 0
-        truncatedData &= 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc;
+        truncatedData &= 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff3f;
         Node memory result = Node(truncatedData);
         return result;
     }
+
+    // proofs
+    function verify(ProofData memory proof, Node memory root, Node memory leaf) internal pure returns (bool) {
+        return processProof(proof, leaf) == root.data;
+    }
+
+    function processProof(ProofData memory proof, Node memory leaf) internal pure returns (bytes32) {
+        bytes32 computedHash = leaf.data;
+        for (uint256 i = 0; i < proof.path.length; i++) {
+            computedHash = hashNode(computedHash, proof.path[i]);
+        }
+        return computedHash;
+    }
+
+    function hashNode(bytes32 left, Node memory right) public pure returns (bytes32) {
+        bytes32 truncatedData = sha256(abi.encodePacked(left, right.data));
+        truncatedData &= 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc;
+        return truncatedData;
+    }
+
 }
