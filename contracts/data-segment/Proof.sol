@@ -80,8 +80,8 @@ contract Proof {
     function dummy(bytes memory inp)public pure returns (bytes32) {
         return inp.cidToPieceCommitment();
     }
-    
-    function computeExpectedAuxData(InclusionProof memory ip, InclusionVerifierData memory verifierData) public pure returns (InclusionAuxData memory) {    
+
+    function computeExpectedAuxData(InclusionProof memory ip, InclusionVerifierData memory verifierData) public view returns (InclusionAuxData memory) {    
         require(isPow2(uint64(verifierData.sizePc)), "Size of piece provided by verifier is not power of two");
 
         bytes32 commPc = verifierData.commPc.cidToPieceCommitment();
@@ -91,19 +91,22 @@ contract Proof {
         (bool ok, uint64 assumedSizePa) = checkedMultiply(uint64(1)<<uint64(ip.proofSubtree.path.length), uint64(verifierData.sizePc));
         require(ok, "assumedSizePa overflow");
 
-
         uint64 dataOffset = ip.proofSubtree.index * uint64(verifierData.sizePc);
 
         // TODO: Question: Do we need to cast nodeCommPc to Fr32 which would simply cast it back to Node?
         SegmentDesc memory en = makeDataSegmentIndexEntry(Fr32(nodeCommPc.data), dataOffset, uint64(verifierData.sizePc));
         Node memory enNode = Node(truncatedHash(serializeFr32(en)));
-        Node memory assumedCommPa2 = computeRoot(ip.proofSubtree, enNode);
+        Node memory assumedCommPa2 = computeRoot(ip.proofIndex, enNode);
+
+        // logging for debugging, these should be equal
+        console.logBytes32(assumedCommPa.data);
+        console.logBytes32(assumedCommPa2.data);
         // require(assumedCommPa.data == assumedCommPa2.data, "aggregator's data commitments don't match");
 
         uint8 bytesInDataSegmentIndexEntry = 2 * MERKLE_TREE_NODE_SIZE;
-        (bool ok2, uint64 assumedSizePa2) = checkedMultiply(uint64(1)<<uint64(ip.proofSubtree.path.length), uint64(bytesInDataSegmentIndexEntry));
+        (bool ok2, uint64 assumedSizePa2) = checkedMultiply(uint64(1)<<uint64(ip.proofIndex.path.length), uint64(bytesInDataSegmentIndexEntry));
         require(ok2, "assumedSizePau64 overflow");
-        //require(assumedSizePa == assumedSizePa2, "aggregator's data size doesn't match");
+        require(assumedSizePa == assumedSizePa2, "aggregator's data size doesn't match");
 
         
         /*
@@ -222,6 +225,8 @@ contract Proof {
         }
         // Truncate to 126 bits
         res &= bytes16(hex"ffffffffffffffffffffffffffffff3f");
+        //res = bytes16(uint128(uint128(res) >> 2));
+
         return res;
     }
 
