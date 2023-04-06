@@ -74,7 +74,20 @@ contract Proof {
         return truncate(Node(digest));
     }
 
-    function computeExpectedAuxData(InclusionProof memory ip, InclusionVerifierData memory veriferData) public pure returns (InclusionAuxData memory) {
+    function dummy(bytes memory inp)public pure returns (bytes32) {
+        return inp.cidToPieceCommitment();
+    }
+    
+    function computeExpectedAuxData(InclusionProof memory ip, InclusionVerifierData memory veriferData) public returns (InclusionAuxData memory) {
+        
+        console.log(
+            "veriferData.commPc.length: %s",
+            veriferData.commPc.length
+        );
+
+        
+
+        
         bytes32 commPc = veriferData.commPc.cidToPieceCommitment();
         Node memory nodeCommPc = Node(commPc);
         Node memory assumedCommPa = computeRoot(ip.proofSubtree, nodeCommPc);
@@ -84,6 +97,9 @@ contract Proof {
 
         InclusionAuxData memory auxData = InclusionAuxData(assumedCommPa.data.pieceCommitmentToCid(), assumedSizePa);
         return auxData;
+        
+        
+        //return InclusionAuxData(hex"0181e203922020", 42);
     }
 
     function checkedMultiply(uint64 a, uint64 b) public pure returns (uint64, bool) {
