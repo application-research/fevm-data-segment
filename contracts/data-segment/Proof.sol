@@ -3,8 +3,11 @@ pragma solidity ^0.8.9;
 
 // Uncomment this line to use console.log
 import "hardhat/console.sol";
+import {Cid} from "./Cid.sol";
 
 contract Proof {
+    using Cid for bytes;
+    using Cid for bytes32;
 
     struct Node {
         bytes32 data;
@@ -30,16 +33,18 @@ contract Proof {
     struct InclusionVerifierData {
         // Piece Commitment to client's data
         // cid.Cid CommPc;
+        bytes32 commPc;
         // SizePc is size of client's data
-        uint64 SizePc;
+        uint64 sizePc;
     }
 
     // InclusionAuxData is required for verification of the proof and needs to be cross-checked with the chain state
     struct InclusionAuxData  {
         // Piece Commitment to aggregator's deal
         // cid.Cid CommPa;
+        bytes32 commPa;
         // SizePa is padded size of aggregator's deal
-        uint64 SizePa;
+        uint64 sizePa;
     }
 
     function computeRoot(ProofData memory d, Node memory subtree) public pure returns (Node memory) {
