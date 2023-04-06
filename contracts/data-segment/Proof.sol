@@ -11,7 +11,7 @@ contract Proof {
     using Cid for bytes32;
 
     uint8 public constant MERKLE_TREE_NODE_SIZE = 32;
-
+    uint256 constant private ENTRY_SIZE = 64;
     bytes32 private constant TRUNCATOR = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff3f;
 
     struct Node {
@@ -99,8 +99,8 @@ contract Proof {
         Node memory assumedCommPa2 = computeRoot(ip.proofIndex, enNode);
 
         // logging for debugging, these should be equal
-        console.logBytes32(assumedCommPa.data);
-        console.logBytes32(assumedCommPa2.data);
+        //console.logBytes32(assumedCommPa.data);
+        //console.logBytes32(assumedCommPa2.data);
         // require(assumedCommPa.data == assumedCommPa2.data, "aggregator's data commitments don't match");
 
         uint8 bytesInDataSegmentIndexEntry = 2 * MERKLE_TREE_NODE_SIZE;
@@ -120,11 +120,11 @@ contract Proof {
         return auxData;
     }
 
-    uint256 public constant BytesInInt = 8;
+    uint64 public constant BytesInInt = 8;
 
-    uint256 public constant ChecksumSize = 16;
+    uint64 public constant ChecksumSize = 16;
 
-    uint256 public constant EntrySize = uint256(MERKLE_TREE_NODE_SIZE) + 2*BytesInInt + ChecksumSize;
+    uint64 public constant EntrySize = uint64(MERKLE_TREE_NODE_SIZE) + 2*BytesInInt + ChecksumSize;
     
     function indexAreaStart(uint64 sizePa) internal pure returns (uint64) {
         return uint64(sizePa) - uint64(maxIndexEntriesInDeal(sizePa))*uint64(EntrySize);
@@ -192,20 +192,18 @@ contract Proof {
 
 
     /////
-
-
     struct SegmentDesc {
         Node commDs;
         uint64 offset;
         uint64 size;
-        bytes32 checksum;
+        bytes16 checksum;
     }
 
     struct Fr32 {
         bytes32 value;
     }
 
-    function makeDataSegmentIndexEntry(Fr32 memory commP, uint64 offset, uint64 size) internal pure returns (SegmentDesc memory) {
+    function makeDataSegmentIndexEntry(Fr32 memory commP, uint64 offset, uint64 size) internal view returns (SegmentDesc memory) {
         SegmentDesc memory en;
         en.commDs = Node(commP.value);
         en.offset = offset;
@@ -214,28 +212,30 @@ contract Proof {
         return en;
     }
 
-    function computeChecksum(SegmentDesc memory sd) private pure returns (bytes32) {
-        sd.checksum = bytes16(0);
-
-        bytes memory toHash = new bytes(0); //sd.serializeFr32();
-        bytes32 digest = sha256(toHash);
-        bytes16 res;
-        assembly {
-            mstore(add(res, 32), digest)
-        }
-        // Truncate to 126 bits
-        res &= bytes16(hex"ffffffffffffffffffffffffffffff3f");
-        //res = bytes16(uint128(uint128(res) >> 2));
-
-        return res;
+    function computeChecksum(SegmentDesc memory sd) public view returns (bytes16) {
+        bytes32 digest = sha256(abi.encodePacked(sd.commDs.data, sd.offset, sd.size, sd.checksum));
+        console.logBytes32(digest);
+        digest &= hex"ffffffffffffffffffffffffffffff3f";
+        console.logBytes32(digest);
+        return bytes16(digest);
     }
 
-    uint256 constant private ENTRY_SIZE = 64;
-
     function serializeFr32(SegmentDesc memory sd) internal pure returns (bytes memory) {
-        bytes memory res = new bytes(ENTRY_SIZE);
-        serializeFr32Into(sd, res);
-        return res;
+        bytes memory slice = new bytes(ENTRY_SIZE);
+        require(slice.length >= ENTRY_SIZE, "Invalid slice length");
+
+        bytes32 commDs = sd.commDs.data;
+        uint64 offset = sd.offset;
+        uint64 size = sd.size;
+        bytes32 checksum = sd.checksum;
+
+        assembly {
+            mstore(add(slice, 32), commDs)
+            mstore(add(slice, add(32, 32)), offset)
+            mstore(add(slice, add(32, 40)), size)
+            mstore(add(slice, add(32, 56)), checksum)
+        }
+        return slice;
     }
 
     function serializeFr32Into(SegmentDesc memory sd, bytes memory slice) internal pure {
