@@ -176,7 +176,6 @@ describe("Inclusion Tests", function () {
     describe("Compute Expected Aux Data", function() {
         it("Should compute the expected Aux Data", async function () {
             verifData = {
-                // commPc: "0x0181e2039220200d0e0a0100030000000000000000000000000000000000000000000000000000"),
                 commPc: "0x0181e2039220200d0e0a0100030000000000000000000000000000000000000000000000000000",
                 sizePc: 0x20000000,
             }
@@ -235,12 +234,9 @@ describe("Inclusion Tests", function () {
                 sizePa: 0x800000000
             }
 
-            // console.log(incProof, verifData, expectedAux);
-
-            const result = await this.inclusion.computeExpectedAuxData(incProof, verifData);
-
-            console.log(result.commPa);
-            // expect(result.commPa).to.equal(expectedAux.commPa);
+            const newAux = await this.inclusion.computeExpectedAuxData(incProof, verifData);
+            expect(newAux.commPa).to.equal(expectedAux.commPa);
+            expect(newAux.sizePa).to.equal(expectedAux.sizePa);
         });
 
     });

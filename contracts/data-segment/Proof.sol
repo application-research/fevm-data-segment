@@ -3,6 +3,7 @@ pragma solidity ^0.8.9;
 
 // Uncomment this line to use console.log
 import "hardhat/console.sol";
+
 import {Cid} from "./Cid.sol";
 
 contract Proof {
@@ -78,39 +79,29 @@ contract Proof {
         return inp.cidToPieceCommitment();
     }
     
-    function computeExpectedAuxData(InclusionProof memory ip, InclusionVerifierData memory veriferData) public returns (InclusionAuxData memory) {
-        
-        console.log(
-            "veriferData.commPc.length: %s",
-            veriferData.commPc.length
-        );
-
-        
-
-        
+    function computeExpectedAuxData(InclusionProof memory ip, InclusionVerifierData memory veriferData) public pure returns (InclusionAuxData memory) {    
         bytes32 commPc = veriferData.commPc.cidToPieceCommitment();
         Node memory nodeCommPc = Node(commPc);
         Node memory assumedCommPa = computeRoot(ip.proofSubtree, nodeCommPc);
 
-        (uint64 assumedSizePa, bool ok) = checkedMultiply(uint64(1)<<uint64(ip.proofSubtree.path.length), uint64(veriferData.sizePc));
+        (bool ok, uint64 assumedSizePa) = checkedMultiply(uint64(1)<<uint64(ip.proofSubtree.path.length), uint64(veriferData.sizePc));
         require(ok, "assumedSizePa overflow");
 
         InclusionAuxData memory auxData = InclusionAuxData(assumedCommPa.data.pieceCommitmentToCid(), assumedSizePa);
         return auxData;
-        
-        
-        //return InclusionAuxData(hex"0181e203922020", 42);
     }
 
-    function checkedMultiply(uint64 a, uint64 b) public pure returns (uint64, bool) {
-        uint256 hi;
-        uint64 lo = uint64(mulmod(a, b, uint256(1) << 64));
-        assembly {
-            hi := gt(lo, a)
+    function checkedMultiply(uint64 a, uint64 b) internal pure returns (bool, uint64) {
+        unchecked {
+            // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
+            // benefit is lost if 'b' is also tested.
+            // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522
+            if (a == 0) return (true, 0);
+            uint64 c = a * b;
+            if (c / a != b) return (false, 0);
+            return (true, c);
         }
-        return (lo, hi == 0);
     }
-
 
     function truncate(Node memory n) internal pure returns (Node memory) {
         bytes32 truncatedData = n.data;
