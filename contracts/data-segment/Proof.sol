@@ -10,6 +10,8 @@ contract Proof {
     using Cid for bytes;
     using Cid for bytes32;
 
+    uint8 public constant MERKLE_TREE_NODE_SIZE = 32;
+    uint256 constant private ENTRY_SIZE = 64;
     bytes32 private constant TRUNCATOR = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff3f;
 
     struct Node {
@@ -78,17 +80,69 @@ contract Proof {
     function dummy(bytes memory inp)public pure returns (bytes32) {
         return inp.cidToPieceCommitment();
     }
-    
-    function computeExpectedAuxData(InclusionProof memory ip, InclusionVerifierData memory veriferData) public pure returns (InclusionAuxData memory) {    
-        bytes32 commPc = veriferData.commPc.cidToPieceCommitment();
+
+    function computeExpectedAuxData(InclusionProof memory ip, InclusionVerifierData memory verifierData) public view returns (InclusionAuxData memory) {    
+        require(isPow2(uint64(verifierData.sizePc)), "Size of piece provided by verifier is not power of two");
+
+        bytes32 commPc = verifierData.commPc.cidToPieceCommitment();
         Node memory nodeCommPc = Node(commPc);
         Node memory assumedCommPa = computeRoot(ip.proofSubtree, nodeCommPc);
 
-        (bool ok, uint64 assumedSizePa) = checkedMultiply(uint64(1)<<uint64(ip.proofSubtree.path.length), uint64(veriferData.sizePc));
+        (bool ok, uint64 assumedSizePa) = checkedMultiply(uint64(1)<<uint64(ip.proofSubtree.path.length), uint64(verifierData.sizePc));
         require(ok, "assumedSizePa overflow");
+
+        uint64 dataOffset = ip.proofSubtree.index * uint64(verifierData.sizePc);
+
+        // TODO: Question: Do we need to cast nodeCommPc to Fr32 which would simply cast it back to Node?
+        SegmentDesc memory en = makeDataSegmentIndexEntry(Fr32(nodeCommPc.data), dataOffset, uint64(verifierData.sizePc));
+        Node memory enNode = Node(truncatedHash(serializeFr32(en)));
+        Node memory assumedCommPa2 = computeRoot(ip.proofIndex, enNode);
+
+        // logging for debugging, these should be equal
+        //console.logBytes32(assumedCommPa.data);
+        //console.logBytes32(assumedCommPa2.data);
+        // require(assumedCommPa.data == assumedCommPa2.data, "aggregator's data commitments don't match");
+
+        uint8 bytesInDataSegmentIndexEntry = 2 * MERKLE_TREE_NODE_SIZE;
+        (bool ok2, uint64 assumedSizePa2) = checkedMultiply(uint64(1)<<uint64(ip.proofIndex.path.length), uint64(bytesInDataSegmentIndexEntry));
+        require(ok2, "assumedSizePau64 overflow");
+        require(assumedSizePa == assumedSizePa2, "aggregator's data size doesn't match");
+
+        
+        /*
+        uint64 idxStart = indexAreaStart(assumedSizePa2);
+        (bool ok3, uint64 indexOffset) = checkedMultiply(ip.proofIndex.index, uint64(bytesInDataSegmentIndexEntry));
+        require(ok3, "indexOffset overflow");
+        require(indexOffset >= idxStart, "index entry at wrong position");
+        */
 
         InclusionAuxData memory auxData = InclusionAuxData(assumedCommPa.data.pieceCommitmentToCid(), assumedSizePa);
         return auxData;
+    }
+
+    uint64 public constant BytesInInt = 8;
+
+    uint64 public constant ChecksumSize = 16;
+
+    uint64 public constant EntrySize = uint64(MERKLE_TREE_NODE_SIZE) + 2*BytesInInt + ChecksumSize;
+    
+    function indexAreaStart(uint64 sizePa) internal pure returns (uint64) {
+        return uint64(sizePa) - uint64(maxIndexEntriesInDeal(sizePa))*uint64(EntrySize);
+    }
+
+    function maxIndexEntriesInDeal(uint256 dealSize) internal pure returns (uint256) {
+        uint256 res = (uint256(1) << (log2Ceil(uint64(dealSize / 2048 / EntrySize)))) & ((1 << 256) - 1);
+        if (res < 4) {
+            return 4;
+        }
+        return res;
+    }
+
+    function isPow2(uint64 value) public pure returns (bool) {
+        if (value == 0) {
+            return true;
+        }
+        return (value & (value - 1)) == 0;
     }
 
     function checkedMultiply(uint64 a, uint64 b) internal pure returns (bool, uint64) {
@@ -130,10 +184,132 @@ contract Proof {
         return truncatedData;
     }
 
-    function truncatedHash(bytes32 data) public pure returns (bytes32) {
+    function truncatedHash(bytes memory data) public pure returns (bytes32) {
         bytes32 truncatedData = sha256(abi.encodePacked(data));
         truncatedData &= TRUNCATOR;
         return truncatedData;
+    }
+
+
+    /////
+    struct SegmentDesc {
+        Node commDs;
+        uint64 offset;
+        uint64 size;
+        bytes16 checksum;
+    }
+
+    struct Fr32 {
+        bytes32 value;
+    }
+
+    function makeDataSegmentIndexEntry(Fr32 memory commP, uint64 offset, uint64 size) internal view returns (SegmentDesc memory) {
+        SegmentDesc memory en;
+        en.commDs = Node(commP.value);
+        en.offset = offset;
+        en.size = size;
+        en.checksum = computeChecksum(en);
+        return en;
+    }
+
+    function computeChecksum(SegmentDesc memory sd) public view returns (bytes16) {
+        bytes32 digest = sha256(abi.encodePacked(sd.commDs.data, sd.offset, sd.size, sd.checksum));
+        console.logBytes32(digest);
+        digest &= hex"ffffffffffffffffffffffffffffff3f";
+        console.logBytes32(digest);
+        return bytes16(digest);
+    }
+
+    function serializeFr32(SegmentDesc memory sd) internal pure returns (bytes memory) {
+        bytes memory slice = new bytes(ENTRY_SIZE);
+        require(slice.length >= ENTRY_SIZE, "Invalid slice length");
+
+        bytes32 commDs = sd.commDs.data;
+        uint64 offset = sd.offset;
+        uint64 size = sd.size;
+        bytes32 checksum = sd.checksum;
+
+        assembly {
+            mstore(add(slice, 32), commDs)
+            mstore(add(slice, add(32, 32)), offset)
+            mstore(add(slice, add(32, 40)), size)
+            mstore(add(slice, add(32, 56)), checksum)
+        }
+        return slice;
+    }
+
+    function serializeFr32Into(SegmentDesc memory sd, bytes memory slice) internal pure {
+        require(slice.length >= ENTRY_SIZE, "Invalid slice length");
+
+        bytes32 commDs = sd.commDs.data;
+        uint64 offset = sd.offset;
+        uint64 size = sd.size;
+        bytes32 checksum = sd.checksum;
+
+        assembly {
+            mstore(add(slice, 32), commDs)
+            mstore(add(slice, add(MERKLE_TREE_NODE_SIZE, 32)), offset)
+            mstore(add(slice, add(MERKLE_TREE_NODE_SIZE, 40)), size)
+            mstore(add(slice, add(MERKLE_TREE_NODE_SIZE, 56)), checksum)
+        }
+    }
+
+    //////// utilities
+    function leadingZeros64(uint64 x) internal pure returns (uint256) {
+        uint256 leadingZeros = 64;
+        uint256 shiftAmount = 32;
+
+        // Check the upper 32 bits
+        if (x >> 32 == 0) {
+            leadingZeros -= shiftAmount;
+            x <<= shiftAmount;
+        }
+
+        // Check the upper 16 bits
+        if (x >> 48 == 0) {
+            leadingZeros -= 16;
+            x <<= 16;
+        }
+
+        // Check the upper 8 bits
+        if (x >> 56 == 0) {
+            leadingZeros -= 8;
+            x <<= 8;
+        }
+
+        // Check the upper 4 bits
+        if (x >> 60 == 0) {
+            leadingZeros -= 4;
+            x <<= 4;
+        }
+
+        // Check the upper 2 bits
+        if (x >> 62 == 0) {
+            leadingZeros -= 2;
+            x <<= 2;
+        }
+
+        // Check the upper bit
+        if (x >> 63 == 0) {
+            leadingZeros -= 1;
+        }
+
+        return leadingZeros;
+    }
+
+    function log2Ceil(uint64 value) internal pure returns (uint256) {
+        if (value <= 1) {
+            return 0;
+        }
+        return log2Floor(value - 1) + 1;
+    }
+
+    function log2Floor(uint64 value) internal pure returns (uint256) {
+        if (value == 0) {
+            return 0;
+        }
+        uint256 zeros = leadingZeros64(value);
+        return uint256(64 - zeros - 1);
     }
 
 }

@@ -59,6 +59,55 @@ describe("Inclusion Tests", function () {
 
     });
 
+    // computeChecksum
+
+    describe("computeChecksum", function() {
+
+        it("Should compute the correct computeChecksum", async function () {
+            
+            const tt = [
+                {
+                    segmentDesc: {
+                        commDs: { data: "0x0000000000000000000000000000000000000000000000000000000000000000" },
+                        offset: 0,
+                        size: 0,
+                        checksum: "0x00000000000000000000000000000000",
+                    },
+                    expectedChecksum: "0xf5a5fd42d16a20302798ef6ed309971b"
+                },
+                {
+                    segmentDesc: {
+                        commDs: { data: "0x0000000000000000000000000000000000000000000000000000000000000000" },
+                        offset: 128,
+                        size: 415872,
+                        checksum: "0x00000000000000000000000000000000",
+                    },
+                    expectedChecksum: "0xc5849ed09e64140bd150e6528ae82d34"
+                },
+                {
+                    segmentDesc: {
+                        commDs: { data: "0x0000000000000000000000000000000000000000000000000000000000000000" },
+                        offset: 41372288,
+                        size: 415872,
+                        checksum: "0x00000000000000000000000000000000",
+                    },
+                    expectedChecksum: "0x5a65d8c77cd3ad32f3fe426cd7d36710"
+                },
+            ]
+
+            for (let i = 0; i < tt.length; i++) {
+                const testCase = tt[i];
+                if (testCase.err) {
+                    await expect(this.inclusion.computeRoot(testCase.proof, testCase.subtree)).to.be.revertedWith(testCase.err);
+                } else {
+                    const checksum = await this.inclusion.computeChecksum(testCase.segmentDesc);
+                    expect(checksum).to.equal(testCase.expectedChecksum);
+                }
+            }
+        });
+
+    });
+
     describe("Compute Root", function() {
 
         it("Should compute the correct Merkle roots", async function () {
