@@ -9,6 +9,8 @@ contract Proof {
     using Cid for bytes;
     using Cid for bytes32;
 
+    bytes32 private constant TRUNCATOR = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff3f;
+
     struct Node {
         bytes32 data;
     }
@@ -33,7 +35,7 @@ contract Proof {
     struct InclusionVerifierData {
         // Piece Commitment to client's data
         // cid.Cid CommPc;
-        bytes32 commPc;
+        bytes commPc;
         // SizePc is size of client's data
         uint64 sizePc;
     }
@@ -42,7 +44,7 @@ contract Proof {
     struct InclusionAuxData  {
         // Piece Commitment to aggregator's deal
         // cid.Cid CommPa;
-        bytes32 commPa;
+        bytes commPa;
         // SizePa is padded size of aggregator's deal
         uint64 sizePa;
     }
@@ -72,10 +74,32 @@ contract Proof {
         return truncate(Node(digest));
     }
 
+    function computeExpectedAuxData(InclusionProof memory ip, InclusionVerifierData memory veriferData) public pure returns (InclusionAuxData memory) {
+        bytes32 commPc = veriferData.commPc.cidToPieceCommitment();
+        Node memory nodeCommPc = Node(commPc);
+        Node memory assumedCommPa = computeRoot(ip.proofSubtree, nodeCommPc);
+
+        (uint64 assumedSizePa, bool ok) = checkedMultiply(uint64(1)<<uint64(ip.proofSubtree.path.length), uint64(veriferData.sizePc));
+        require(ok, "assumedSizePa overflow");
+
+        InclusionAuxData memory auxData = InclusionAuxData(assumedCommPa.data.pieceCommitmentToCid(), assumedSizePa);
+        return auxData;
+    }
+
+    function checkedMultiply(uint64 a, uint64 b) public pure returns (uint64, bool) {
+        uint256 hi;
+        uint64 lo = uint64(mulmod(a, b, uint256(1) << 64));
+        assembly {
+            hi := gt(lo, a)
+        }
+        return (lo, hi == 0);
+    }
+
+
     function truncate(Node memory n) internal pure returns (Node memory) {
         bytes32 truncatedData = n.data;
         // Set the two lowest-order bits of the last byte to 0
-        truncatedData &= 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff3f;
+        truncatedData &= TRUNCATOR;
         Node memory result = Node(truncatedData);
         return result;
     }
@@ -95,7 +119,13 @@ contract Proof {
 
     function hashNode(bytes32 left, Node memory right) public pure returns (bytes32) {
         bytes32 truncatedData = sha256(abi.encodePacked(left, right.data));
-        truncatedData &= 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff3f;
+        truncatedData &= TRUNCATOR;
+        return truncatedData;
+    }
+
+    function truncatedHash(bytes32 data) public pure returns (bytes32) {
+        bytes32 truncatedData = sha256(abi.encodePacked(data));
+        truncatedData &= TRUNCATOR;
         return truncatedData;
     }
 
