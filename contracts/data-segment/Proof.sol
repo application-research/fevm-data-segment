@@ -29,7 +29,7 @@ contract Proof {
     // from the client.
     struct InclusionVerifierData {
         // Piece Commitment to client's data
-        cid.Cid CommPc;
+        // cid.Cid CommPc;
         // SizePc is size of client's data
         uint64 SizePc;
     }
@@ -37,7 +37,7 @@ contract Proof {
     // InclusionAuxData is required for verification of the proof and needs to be cross-checked with the chain state
     struct InclusionAuxData  {
         // Piece Commitment to aggregator's deal
-        cid.Cid CommPa;
+        // cid.Cid CommPa;
         // SizePa is padded size of aggregator's deal
         uint64 SizePa;
     }
