@@ -82,6 +82,11 @@ contract Proof {
         (uint64 assumedSizePa, bool ok) = checkedMultiply(uint64(1)<<uint64(ip.proofSubtree.path.length), uint64(veriferData.sizePc));
         require(ok, "assumedSizePa overflow");
 
+        uint64 dataOffset = ip.proofSubtree.index * uint64(veriferData.sizePc);
+
+        // TODO: Question: Do we need to cast nodeCommPc to Fr32 which would simply cast it back to Node?
+        SegmentDesc memory en = makeDataSegmentIndexEntry(Fr32(nodeCommPc.data), dataOffset, uint64(veriferData.sizePc));
+
         InclusionAuxData memory auxData = InclusionAuxData(assumedCommPa.data.pieceCommitmentToCid(), assumedSizePa);
         return auxData;
     }
@@ -127,6 +132,42 @@ contract Proof {
         bytes32 truncatedData = sha256(abi.encodePacked(data));
         truncatedData &= TRUNCATOR;
         return truncatedData;
+    }
+
+    struct SegmentDesc {
+        Node commDs;
+        uint64 offset;
+        uint64 size;
+        bytes32 checksum;
+    }
+
+    struct Fr32 {
+        bytes32 value;
+    }
+
+    uint private constant ChecksumSize = 16;
+
+    function makeDataSegmentIndexEntry(Fr32 memory commP, uint64 offset, uint64 size) internal pure returns (SegmentDesc memory) {
+        SegmentDesc memory en;
+        en.commDs = Node(commP.value);
+        en.offset = offset;
+        en.size = size;
+        en.checksum = computeChecksum(en);
+        return en;
+    }
+
+    function computeChecksum(SegmentDesc memory sd) private pure returns (bytes32) {
+        sd.checksum = bytes16(0);
+
+        bytes memory toHash = new bytes(0); //sd.serializeFr32();
+        bytes32 digest = sha256(toHash);
+        bytes16 res;
+        assembly {
+            mstore(add(res, 32), digest)
+        }
+        // Truncate to 126 bits
+        res &= bytes16(hex"ffffffffffffffffffffffffffffff3f");
+        return res;
     }
 
 }
