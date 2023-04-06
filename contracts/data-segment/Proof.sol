@@ -76,8 +76,8 @@ contract Proof {
     }
 
     // proofs
-    function verify(ProofData memory proof, Node memory root, Node memory leaf) internal pure returns (bool) {
-        return processProof(proof, leaf) == root.data;
+    function verify(ProofData memory proof, Node memory root, Node memory leaf) public pure returns (bool) {
+        return computeRoot(proof, leaf).data == root.data;
     }
 
     function processProof(ProofData memory proof, Node memory leaf) internal pure returns (bytes32) {
