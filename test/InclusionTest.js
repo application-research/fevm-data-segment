@@ -1,5 +1,4 @@
 const { expect } = require("chai");
-const { Leaf } = require("merkletreejs/dist/MerkleSumTree");
 
 async function deploy(name) {
     const Contract = await ethers.getContractFactory(name);
@@ -43,7 +42,7 @@ describe("Inclusion Tests", function () {
             const expectedMerge = "0xff55c97976a840b4ced964ed49e3794594ba3f675238b5fd25d282b60f70a114";  
             expect(result.data).to.equal(expectedMerge);
         });
-        
+
     });
 
     describe("Compute Root", function() {
