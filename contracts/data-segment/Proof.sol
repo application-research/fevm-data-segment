@@ -77,10 +77,6 @@ contract Proof {
         return truncate(Node(digest));
     }
 
-    function dummy(bytes memory inp)public pure returns (bytes32) {
-        return inp.cidToPieceCommitment();
-    }
-
     function computeExpectedAuxData(InclusionProof memory ip, InclusionVerifierData memory verifierData) public view returns (InclusionAuxData memory) {    
         require(isPow2(uint64(verifierData.sizePc)), "Size of piece provided by verifier is not power of two");
 
