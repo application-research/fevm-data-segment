@@ -1,7 +1,14 @@
 const { expect } = require("chai");
 
 async function deploy(name) {
-    const Contract = await ethers.getContractFactory(name);
+    const Cid = await ethers.getContractFactory("Cid");
+    const cid = await Cid.deploy();
+
+    const Contract = await ethers.getContractFactory(name, {
+        libraries: {
+            Cid: cid.address,
+        },
+    });
     return await Contract.deploy().then(f => f.deployed());
 }
 
@@ -156,6 +163,44 @@ describe("Inclusion Tests", function () {
                     expect(result.data).to.equal(testCase.expectedRoot);
                 }
             }
+        });
+    });
+
+    describe("Compute Expected Aux Data", function() {
+
+        it("Calculate Assumed Size", async function() {
+
+            // struct InclusionVerifierData {
+            //     // Piece Commitment to client's data
+            //     // cid.Cid CommPc;
+            //     Node commPc; // tmp object type for testing
+            //     // SizePc is size of client's data
+            //     uint64 SizePc;
+            // }
+            // const verifyData = {
+            //     commPc: { data: Buffer.from("0181e2039220200d0e0a01000300000000000000000000000000000000000000", "hex")},
+            //     sizePc: 0x20000000,
+            // }
+            // const proof = {
+            //     proofSubtree: {
+            //         index: 0,
+            //         path: [
+            //             { data: Buffer.from("0200000000000000000000000000000000000000000000000000000000000000", "hex") },
+            //             { data: Buffer.from("0300000000000000000000000000000000000000000000000000000000000000", "hex") },
+            //         ]
+            //     },
+            //     proofIndex: {
+            //         index: 0,
+            //         path: [
+            //             { data: Buffer.from("0200000000000000000000000000000000000000000000000000000000000000", "hex") },
+            //             { data: Buffer.from("0300000000000000000000000000000000000000000000000000000000000000", "hex") },
+            //         ]
+            //     }
+                
+            // };
+
+            // const result = await this.inclusion.computeExpectedAuxData(proof, verifyData);
+            // console.log(result)
         });
     });
 });

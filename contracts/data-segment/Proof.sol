@@ -3,7 +3,7 @@ pragma solidity ^0.8.9;
 
 // Uncomment this line to use console.log
 import "hardhat/console.sol";
-import {Cid} from "./Cid.sol";
+import { Cid } from "./Cid.sol";
 
 contract Proof {
     using Cid for bytes;
@@ -33,7 +33,7 @@ contract Proof {
     struct InclusionVerifierData {
         // Piece Commitment to client's data
         // cid.Cid CommPc;
-        bytes32 commPc;
+        bytes commPc;
         // SizePc is size of client's data
         uint64 sizePc;
     }
@@ -98,5 +98,29 @@ contract Proof {
         truncatedData &= 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff3f;
         return truncatedData;
     }
+
+    function computeExpectedAuxData(InclusionProof memory inclusionProof, InclusionVerifierData memory veriferData) public pure returns (InclusionAuxData memory) {
+        // Verification flow:
+        //	1. Decode Client's Piece commitment
+        //	2. Compute assumed aggregator's commitment based on the subtree inclusion proof
+        //	3. Compute size of aggregator's deal and offset of Client's deal within the Aggreggator's deal.
+        //	4. Create the DataSegmentIndexEntry based on Client's data and offset from 3
+        //	5. Compute second assumed aggregator's commitment based on the data segment index entry inclusion proof.
+        //  6. Check if DataSegmentIndexEntry falls into the correct area.
+        //	7. Compute second assumed aggregator's deal size.
+        //	8. Compare deal sizes and commitments from steps 2+3 against steps 5+6. Fail if not equal.
+        //	9. Return the computed values of aggregator's Commitment and Size as AuxData.
+
+        bytes32 commPc = Cid.cidToPieceCommitment(veriferData.commPc);
+
+        Node memory assumedCommPa = computeRoot(inclusionProof.proofSubtree, Node(commPc));
+
+        uint64 assumedSizePa = uint64((1 << inclusionProof.proofSubtree.path.length) * veriferData.sizePc);
+
+        uint64 dataOffset = inclusionProof.proofIndex.index * uint64(veriferData.sizePc);
+
+        return InclusionAuxData(assumedCommPa.data, assumedSizePa);
+    }
+    
 
 }
