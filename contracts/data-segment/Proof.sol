@@ -15,6 +15,33 @@ contract Proof {
         Node[] path;
     }
 
+    // InclusionPoof is produced by the aggregator (or possibly by the SP)
+    struct InclusionProof  {
+        // ProofSubtree is proof of inclusion of the client's data segment in the data aggregator's Merkle tree (includes position information)
+        // I.e. a proof that the root node of the subtree containing all the nodes (leafs) of a data segment is contained in CommDA
+        ProofData proofSubtree;
+        // ProofIndex is a proof that an entry for the user's data is contained in the index of the aggregator's deal.
+        // I.e. a proof that the data segment index constructed from the root of the user's data segment subtree is contained in the index of the deal tree.
+        ProofData proofIndex;
+    }
+
+    // InclusionVerifierData is the information required for verification of the proof and is sourced
+    // from the client.
+    struct InclusionVerifierData {
+        // Piece Commitment to client's data
+        cid.Cid CommPc;
+        // SizePc is size of client's data
+        uint64 SizePc;
+    }
+
+    // InclusionAuxData is required for verification of the proof and needs to be cross-checked with the chain state
+    struct InclusionAuxData  {
+        // Piece Commitment to aggregator's deal
+        cid.Cid CommPa;
+        // SizePa is padded size of aggregator's deal
+        uint64 SizePa;
+    }
+
     function computeRoot(ProofData memory d, Node memory subtree) public pure returns (Node memory) {
         require(d.path.length < 64, "merkleproofs with depths greater than 63 are not supported");
         require(d.index >> d.path.length == 0, "index greater than width of the tree");
@@ -63,7 +90,7 @@ contract Proof {
 
     function hashNode(bytes32 left, Node memory right) public pure returns (bytes32) {
         bytes32 truncatedData = sha256(abi.encodePacked(left, right.data));
-        truncatedData &= 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc;
+        truncatedData &= 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff3f;
         return truncatedData;
     }
 
