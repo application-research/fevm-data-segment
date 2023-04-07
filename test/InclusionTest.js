@@ -19,7 +19,6 @@ describe("Inclusion Tests", function () {
     });
 
     describe("Validate Proof", function() {
-
         it("Should be valide proof", async function() {
             const subtree = { 
                 data: "0x0100000000000000000000000000000000000000000000000000000000000000",
@@ -35,11 +34,9 @@ describe("Inclusion Tests", function () {
 
             expect(await this.inclusion.verify(proof, root, subtree)).to.equal(true)
         });
-
     });
 
     describe("Compute Node", function() {
-
         it("Should compute the correct Node", async function () {
             // Define the input data for the function
             const left = { data: "0x0100000000000000000000000000000000000000000000000000000000000000"};
@@ -49,15 +46,12 @@ describe("Inclusion Tests", function () {
             const expectedMerge = "0xff55c97976a840b4ced964ed49e3794594ba3f675238b5fd25d282b60f70a114";  
             expect(result.data).to.equal(expectedMerge);
         });
-
     });
 
     // computeChecksum
 
     describe("computeChecksum", function() {
-
         it("Should compute the correct computeChecksum", async function () {
-            
             const tt = [
                 {
                     segmentDesc: {
@@ -102,11 +96,9 @@ describe("Inclusion Tests", function () {
                 }
             }
         });
-
     });
 
     describe("Compute Root", function() {
-
         it("Should compute the correct Merkle roots", async function () {
             const tt = [
                 {        
@@ -206,7 +198,6 @@ describe("Inclusion Tests", function () {
                     err:     "merkleproofs with depths greater than 63 are not supported",
                 },
             ]
-
             for (let i = 0; i < tt.length; i++) {
                 const testCase = tt[i];
                 if (testCase.err) {
@@ -229,7 +220,6 @@ describe("Inclusion Tests", function () {
                 commPc: "0x0181e2039220200d0e0a0100030000000000000000000000000000000000000000000000000000",
                 sizePc: 0x20000000,
             }
-
             incProof = {
                 proofSubtree: {
                     index: 0x5,
@@ -278,16 +268,13 @@ describe("Inclusion Tests", function () {
                     ],
                 },
             }
-
             expectedAux = {
                 commPa: "0x0181e2039220203f46bc645b07a3ea2c04f066f939ddf7e269dd77671f9e1e61a3a3797e665127",
                 sizePa: 0x800000000
             }
-
             const newAux = await this.inclusion.computeExpectedAuxData(incProof, verifData);
             expect(newAux.commPa).to.equal(expectedAux.commPa);
             expect(newAux.sizePa).to.equal(expectedAux.sizePa);
         });
-
     });
 });
