@@ -9,6 +9,7 @@ library Cid {
     uint8 public constant CID_COMMP_HEADER_LENGTH = 7;
     uint8 public constant MERKLE_TREE_NODE_SIZE = 32;
 
+    // cidToPieceCommitment converts a CID to a piece commitment.
     function cidToPieceCommitment(bytes memory _cb) public pure returns (bytes32) {
         require(_cb.length == CID_COMMP_HEADER_LENGTH + MERKLE_TREE_NODE_SIZE, "wrong length of CID");
         require(
@@ -23,6 +24,7 @@ library Cid {
         return res;
     }
 
+    // pieceCommitmentToCid converts a piece commitment to a CID.
     function pieceCommitmentToCid(bytes32 _commp) public pure returns (bytes memory) {
         bytes memory cb = abi.encodePacked(CID_COMMP_HEADER, _commp);
         return cb;
