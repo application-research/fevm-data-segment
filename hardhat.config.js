@@ -1,6 +1,7 @@
 require("@nomicfoundation/hardhat-toolbox")
 require("hardhat-deploy")
 require("hardhat-deploy-ethers")
+require("hardhat-gas-reporter");
 require("./tasks")
 require("dotenv").config()
 
@@ -44,4 +45,9 @@ module.exports = {
         cache: "./cache",
         artifacts: "./artifacts",
     },
+    gasReporter: {
+      enabled: true,
+      currency: 'USD',
+      gasPrice: 21
+    },  
 }
