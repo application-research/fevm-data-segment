@@ -79,7 +79,7 @@ contract Proof {
         MarketTypes.GetDealActivationReturn memory dealActivation = MarketAPI.getDealActivation(
             dealId
         );
-        require(dealActivation.terminated == 0, "Deal is terminated");
+        require(dealActivation.terminated <= 0, "Deal is terminated");
         require(dealActivation.activated > 0, "Deal is not activated");
 
         MarketTypes.GetDealDataCommitmentReturn memory dealDataCommitment = MarketAPI
