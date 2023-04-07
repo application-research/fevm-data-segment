@@ -88,23 +88,16 @@ contract Proof {
         require(ok, "assumedSizePa overflow");
 
         uint64 dataOffset = ip.proofSubtree.index * uint64(verifierData.sizePc);
-
-        // TODO: Question: Do we need to cast nodeCommPc to Fr32 which would simply cast it back to Node?
         SegmentDesc memory en = makeDataSegmentIndexEntry(Fr32(nodeCommPc.data), dataOffset, uint64(verifierData.sizePc));
-        Node memory enNode = Node(truncatedHash(serializeFr32(en)));
+        Node memory enNode = Node(truncatedHash(serialize(en)));
         Node memory assumedCommPa2 = computeRoot(ip.proofIndex, enNode);
-
-        // logging for debugging, these should be equal
-        //console.logBytes32(assumedCommPa.data);
-        //console.logBytes32(assumedCommPa2.data);
-        // require(assumedCommPa.data == assumedCommPa2.data, "aggregator's data commitments don't match");
+        require(assumedCommPa.data == assumedCommPa2.data, "aggregator's data commitments don't match");
 
         uint8 bytesInDataSegmentIndexEntry = 2 * MERKLE_TREE_NODE_SIZE;
         (bool ok2, uint64 assumedSizePa2) = checkedMultiply(uint64(1)<<uint64(ip.proofIndex.path.length), uint64(bytesInDataSegmentIndexEntry));
         require(ok2, "assumedSizePau64 overflow");
         require(assumedSizePa == assumedSizePa2, "aggregator's data size doesn't match");
 
-        
         /*
         uint64 idxStart = indexAreaStart(assumedSizePa2);
         (bool ok3, uint64 indexOffset) = checkedMultiply(ip.proofIndex.index, uint64(bytesInDataSegmentIndexEntry));
@@ -208,46 +201,38 @@ contract Proof {
         return en;
     }
 
-    function computeChecksum(SegmentDesc memory sd) public view returns (bytes16) {
-        bytes32 digest = sha256(abi.encodePacked(sd.commDs.data, sd.offset, sd.size, sd.checksum));
-        console.logBytes32(digest);
+    function computeChecksum(SegmentDesc memory _sd) public view returns (bytes16) {
+        bytes memory serialized = serialize(_sd);
+        bytes32 digest = sha256(serialized);
         digest &= hex"ffffffffffffffffffffffffffffff3f";
-        console.logBytes32(digest);
         return bytes16(digest);
     }
 
-    function serializeFr32(SegmentDesc memory sd) internal pure returns (bytes memory) {
-        bytes memory slice = new bytes(ENTRY_SIZE);
-        require(slice.length >= ENTRY_SIZE, "Invalid slice length");
+    function serialize(SegmentDesc memory sd) public pure returns (bytes memory) {
+        bytes memory result = new bytes(ENTRY_SIZE);
 
+        // Pad commDs
         bytes32 commDs = sd.commDs.data;
-        uint64 offset = sd.offset;
-        uint64 size = sd.size;
-        bytes32 checksum = sd.checksum;
-
         assembly {
-            mstore(add(slice, 32), commDs)
-            mstore(add(slice, add(32, 32)), offset)
-            mstore(add(slice, add(32, 40)), size)
-            mstore(add(slice, add(32, 56)), checksum)
+            mstore(add(result, 32), commDs)
         }
-        return slice;
-    }
 
-    function serializeFr32Into(SegmentDesc memory sd, bytes memory slice) internal pure {
-        require(slice.length >= ENTRY_SIZE, "Invalid slice length");
-
-        bytes32 commDs = sd.commDs.data;
-        uint64 offset = sd.offset;
-        uint64 size = sd.size;
-        bytes32 checksum = sd.checksum;
-
-        assembly {
-            mstore(add(slice, 32), commDs)
-            mstore(add(slice, add(MERKLE_TREE_NODE_SIZE, 32)), offset)
-            mstore(add(slice, add(MERKLE_TREE_NODE_SIZE, 40)), size)
-            mstore(add(slice, add(MERKLE_TREE_NODE_SIZE, 56)), checksum)
+        // Pad offset (little-endian)
+        for (uint i = 0; i < 8; i++) {
+            result[MERKLE_TREE_NODE_SIZE + i] = bytes1(uint8(sd.offset >> (i * 8)));
         }
+
+        // Pad size (little-endian)
+        for (uint i = 0; i < 8; i++) {
+            result[MERKLE_TREE_NODE_SIZE + 8 + i] = bytes1(uint8(sd.size >> (i * 8)));
+        }
+
+        // Pad checksum
+        for (uint i = 0; i < 16; i++) {
+            result[MERKLE_TREE_NODE_SIZE + 16 + i] = sd.checksum[i];
+        }
+
+        return result;
     }
 
     //////// utilities

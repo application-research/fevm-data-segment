@@ -12,13 +12,6 @@ async function deploy(name) {
     return await Contract.deploy().then(f => f.deployed());
 }
 
-/*
-async function deploy(name) {
-    const Contract = await ethers.getContractFactory(name);
-    return await Contract.deploy().then(f => f.deployed());
-}
-*/
-
 describe("Inclusion Tests", function () {
 
     before(async function() {
