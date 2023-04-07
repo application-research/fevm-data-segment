@@ -5,56 +5,110 @@ pragma solidity ^0.8.9;
 import "hardhat/console.sol";
 
 import {Cid} from "./Cid.sol";
+import {MarketAPI} from "@zondax/filecoin-solidity/contracts/v0.8/MarketAPI.sol";
+//import {CommonTypes} from "@zondax/filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
+import {MarketTypes} from "@zondax/filecoin-solidity/contracts/v0.8/types/MarketTypes.sol";
+
+// Node is a Merkle tree node
+struct Node {
+    bytes32 data;
+}
+
+// ProofData is a Merkle proof
+struct ProofData {
+    uint64 index;
+    Node[] path;
+}
+
+// InclusionPoof is produced by the aggregator (or possibly by the SP)
+struct InclusionProof  {
+    // ProofSubtree is proof of inclusion of the client's data segment in the data aggregator's Merkle tree (includes position information)
+    // I.e. a proof that the root node of the subtree containing all the nodes (leafs) of a data segment is contained in CommDA
+    ProofData proofSubtree;
+    // ProofIndex is a proof that an entry for the user's data is contained in the index of the aggregator's deal.
+    // I.e. a proof that the data segment index constructed from the root of the user's data segment subtree is contained in the index of the deal tree.
+    ProofData proofIndex;
+}
+
+// InclusionVerifierData is the information required for verification of the proof and is sourced
+// from the client.
+struct InclusionVerifierData {
+    // Piece Commitment CID to client's data
+    bytes commPc;
+    // SizePc is size of client's data
+    uint64 sizePc;
+}
+
+// InclusionAuxData is required for verification of the proof and needs to be cross-checked with the chain state
+struct InclusionAuxData  {
+    // Piece Commitment CID to aggregator's deal
+    bytes commPa;
+    // SizePa is padded size of aggregator's deal
+    uint64 sizePa;
+}
+
+uint8 constant MERKLE_TREE_NODE_SIZE = 32;
+bytes32 constant TRUNCATOR = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff3f;
+uint64 constant BYTES_IN_INT = 8;
+uint64 constant CHECKSUM_SIZE = 16;
+uint64 constant ENTRY_SIZE = uint64(MERKLE_TREE_NODE_SIZE) + 2*BYTES_IN_INT + CHECKSUM_SIZE;
+uint8 constant bytesInDataSegmentIndexEntry = 2 * MERKLE_TREE_NODE_SIZE;
 
 contract Proof {
     using Cid for bytes;
     using Cid for bytes32;
 
-    uint8 public constant MERKLE_TREE_NODE_SIZE = 32;
-    bytes32 private constant TRUNCATOR = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff3f;
-    uint64 public constant BYTES_IN_INT = 8;
-    uint64 public constant CHECKSUM_SIZE = 16;
-    uint64 public constant ENTRY_SIZE = uint64(MERKLE_TREE_NODE_SIZE) + 2*BYTES_IN_INT + CHECKSUM_SIZE;
-    uint8 private constant bytesInDataSegmentIndexEntry = 2 * MERKLE_TREE_NODE_SIZE;
+    // computeExpectedAuxData computes the expected auxiliary data given an inclusion proof and the data provided by the verifier.
+    function computeExpectedAuxData(InclusionProof memory ip, InclusionVerifierData memory verifierData) public pure returns (InclusionAuxData memory) {    
+        require(isPow2(uint64(verifierData.sizePc)), "Size of piece provided by verifier is not power of two");
 
-    // Node is a Merkle tree node
-    struct Node {
-        bytes32 data;
+        bytes32 commPc = verifierData.commPc.cidToPieceCommitment();
+        Node memory nodeCommPc = Node(commPc);
+        Node memory assumedCommPa = computeRoot(ip.proofSubtree, nodeCommPc);
+
+        (bool ok, uint64 assumedSizePa) = checkedMultiply(uint64(1)<<uint64(ip.proofSubtree.path.length), uint64(verifierData.sizePc));
+        require(ok, "assumedSizePa overflow");
+
+        uint64 dataOffset = ip.proofSubtree.index * uint64(verifierData.sizePc);
+        SegmentDesc memory en = makeDataSegmentIndexEntry(Fr32(nodeCommPc.data), dataOffset, uint64(verifierData.sizePc));
+        Node memory enNode = Node(truncatedHash(serialize(en)));
+        Node memory assumedCommPa2 = computeRoot(ip.proofIndex, enNode);
+        require(assumedCommPa.data == assumedCommPa2.data, "aggregator's data commitments don't match");
+
+        (bool ok2, uint64 assumedSizePa2) = checkedMultiply(uint64(1)<<uint64(ip.proofIndex.path.length), uint64(bytesInDataSegmentIndexEntry));
+        require(ok2, "assumedSizePau64 overflow");
+        require(assumedSizePa == assumedSizePa2, "aggregator's data size doesn't match");
+
+        validateIndexEntry(ip, assumedSizePa2);
+        return InclusionAuxData(assumedCommPa.data.pieceCommitmentToCid(), assumedSizePa);
     }
 
-    // ProofData is a Merkle proof
-    struct ProofData {
-        uint64 index;
-        Node[] path;
+    // computeExpectedAuxDataWithDeal computes the expected auxiliary data given an inclusion proof and the data provided by the verifier
+    // and validates that the deal is activated and not terminated.
+    function computeExpectedAuxDataWithDeal(uint64 dealId, InclusionProof memory ip, InclusionVerifierData memory verifierData) public returns (InclusionAuxData memory) {    
+        InclusionAuxData memory inclusionAuxData = computeExpectedAuxData(ip, verifierData);
+        validateInclusionAuxData(dealId, inclusionAuxData);
+        return inclusionAuxData;
     }
 
-    // InclusionPoof is produced by the aggregator (or possibly by the SP)
-    struct InclusionProof  {
-        // ProofSubtree is proof of inclusion of the client's data segment in the data aggregator's Merkle tree (includes position information)
-        // I.e. a proof that the root node of the subtree containing all the nodes (leafs) of a data segment is contained in CommDA
-        ProofData proofSubtree;
-        // ProofIndex is a proof that an entry for the user's data is contained in the index of the aggregator's deal.
-        // I.e. a proof that the data segment index constructed from the root of the user's data segment subtree is contained in the index of the deal tree.
-        ProofData proofIndex;
+    // validateInclusionAuxData validates that the deal is activated and not terminated.
+    function validateInclusionAuxData(uint64 dealId, InclusionAuxData memory inclusionAuxData) internal {
+        // check that the deal is not terminated
+        MarketTypes.GetDealActivationReturn memory dealActivation = MarketAPI.getDealActivation(dealId);
+        require(dealActivation.terminated == 0, "Deal is terminated");
+        require(dealActivation.activated > 0, "Deal is not activated");
+
+        MarketTypes.GetDealDataCommitmentReturn memory dealDataCommitment = MarketAPI.getDealDataCommitment(dealId);
+        require(keccak256(dealDataCommitment.data) == keccak256(inclusionAuxData.commPa), "Deal commD doesn't match");
+        require(dealDataCommitment.size == inclusionAuxData.sizePa, "Deal size doesn't match");
     }
 
-    // InclusionVerifierData is the information required for verification of the proof and is sourced
-    // from the client.
-    struct InclusionVerifierData {
-        // Piece Commitment to client's data
-        // cid.Cid CommPc;
-        bytes commPc;
-        // SizePc is size of client's data
-        uint64 sizePc;
-    }
-
-    // InclusionAuxData is required for verification of the proof and needs to be cross-checked with the chain state
-    struct InclusionAuxData  {
-        // Piece Commitment to aggregator's deal
-        // cid.Cid CommPa;
-        bytes commPa;
-        // SizePa is padded size of aggregator's deal
-        uint64 sizePa;
+    // validateIndexEntry validates that the index entry is in the correct position in the index.
+    function validateIndexEntry(InclusionProof memory ip, uint64 assumedSizePa2) internal pure {
+        uint64 idxStart = indexAreaStart(assumedSizePa2);
+        (bool ok3, uint64 indexOffset) = checkedMultiply(ip.proofIndex.index, uint64(bytesInDataSegmentIndexEntry));
+        require(ok3, "indexOffset overflow");
+        require(indexOffset >= idxStart, "index entry at wrong position");
     }
 
     // computeRoot computes the root of a Merkle tree given a leaf and a Merkle proof.
@@ -82,40 +136,6 @@ contract Proof {
     function computeNode(Node memory left, Node memory right) public pure returns (Node memory) {
         bytes32 digest = sha256(abi.encodePacked(left.data, right.data));
         return truncate(Node(digest));
-    }
-
-    // computeExpectedAuxData computes the expected auxiliary data given an inclusion proof and the data provided by the verifier.
-    function computeExpectedAuxData(InclusionProof memory ip, InclusionVerifierData memory verifierData) public pure returns (InclusionAuxData memory) {    
-        require(isPow2(uint64(verifierData.sizePc)), "Size of piece provided by verifier is not power of two");
-
-        bytes32 commPc = verifierData.commPc.cidToPieceCommitment();
-        Node memory nodeCommPc = Node(commPc);
-        Node memory assumedCommPa = computeRoot(ip.proofSubtree, nodeCommPc);
-
-        (bool ok, uint64 assumedSizePa) = checkedMultiply(uint64(1)<<uint64(ip.proofSubtree.path.length), uint64(verifierData.sizePc));
-        require(ok, "assumedSizePa overflow");
-
-        uint64 dataOffset = ip.proofSubtree.index * uint64(verifierData.sizePc);
-        SegmentDesc memory en = makeDataSegmentIndexEntry(Fr32(nodeCommPc.data), dataOffset, uint64(verifierData.sizePc));
-        Node memory enNode = Node(truncatedHash(serialize(en)));
-        Node memory assumedCommPa2 = computeRoot(ip.proofIndex, enNode);
-        require(assumedCommPa.data == assumedCommPa2.data, "aggregator's data commitments don't match");
-
-        (bool ok2, uint64 assumedSizePa2) = checkedMultiply(uint64(1)<<uint64(ip.proofIndex.path.length), uint64(bytesInDataSegmentIndexEntry));
-        require(ok2, "assumedSizePau64 overflow");
-        require(assumedSizePa == assumedSizePa2, "aggregator's data size doesn't match");
-
-        validateIndexEntry(ip, assumedSizePa2);
-
-        return InclusionAuxData(assumedCommPa.data.pieceCommitmentToCid(), assumedSizePa);
-    }
-
-    // validateIndexEntry validates that the index entry is in the correct position in the index.
-    function validateIndexEntry(InclusionProof memory ip, uint64 assumedSizePa2) internal pure {
-        uint64 idxStart = indexAreaStart(assumedSizePa2);
-        (bool ok3, uint64 indexOffset) = checkedMultiply(ip.proofIndex.index, uint64(bytesInDataSegmentIndexEntry));
-        require(ok3, "indexOffset overflow");
-        require(indexOffset >= idxStart, "index entry at wrong position");
     }
 
     // indexAreaStart returns the offset of the start of the index area in the deal.
