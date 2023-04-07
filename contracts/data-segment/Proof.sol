@@ -11,8 +11,11 @@ contract Proof {
     using Cid for bytes32;
 
     uint8 public constant MERKLE_TREE_NODE_SIZE = 32;
-    uint256 constant private ENTRY_SIZE = 64;
     bytes32 private constant TRUNCATOR = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff3f;
+    uint64 public constant BYTES_IN_INT = 8;
+    uint64 public constant CHECKSUM_SIZE = 16;
+    uint64 public constant ENTRY_SIZE = uint64(MERKLE_TREE_NODE_SIZE) + 2*BYTES_IN_INT + CHECKSUM_SIZE;
+    uint8 private constant bytesInDataSegmentIndexEntry = 2 * MERKLE_TREE_NODE_SIZE;
 
     struct Node {
         bytes32 data;
@@ -77,7 +80,7 @@ contract Proof {
         return truncate(Node(digest));
     }
 
-    function computeExpectedAuxData(InclusionProof memory ip, InclusionVerifierData memory verifierData) public view returns (InclusionAuxData memory) {    
+    function computeExpectedAuxData(InclusionProof memory ip, InclusionVerifierData memory verifierData) public pure returns (InclusionAuxData memory) {    
         require(isPow2(uint64(verifierData.sizePc)), "Size of piece provided by verifier is not power of two");
 
         bytes32 commPc = verifierData.commPc.cidToPieceCommitment();
@@ -93,34 +96,28 @@ contract Proof {
         Node memory assumedCommPa2 = computeRoot(ip.proofIndex, enNode);
         require(assumedCommPa.data == assumedCommPa2.data, "aggregator's data commitments don't match");
 
-        uint8 bytesInDataSegmentIndexEntry = 2 * MERKLE_TREE_NODE_SIZE;
         (bool ok2, uint64 assumedSizePa2) = checkedMultiply(uint64(1)<<uint64(ip.proofIndex.path.length), uint64(bytesInDataSegmentIndexEntry));
         require(ok2, "assumedSizePau64 overflow");
         require(assumedSizePa == assumedSizePa2, "aggregator's data size doesn't match");
 
-        /*
+        //validateIndexEntry(ip, assumedSizePa2);
+
+        return InclusionAuxData(assumedCommPa.data.pieceCommitmentToCid(), assumedSizePa);
+    }
+
+    function validateIndexEntry(InclusionProof memory ip, uint64 assumedSizePa2) internal pure {
         uint64 idxStart = indexAreaStart(assumedSizePa2);
         (bool ok3, uint64 indexOffset) = checkedMultiply(ip.proofIndex.index, uint64(bytesInDataSegmentIndexEntry));
         require(ok3, "indexOffset overflow");
         require(indexOffset >= idxStart, "index entry at wrong position");
-        */
-
-        InclusionAuxData memory auxData = InclusionAuxData(assumedCommPa.data.pieceCommitmentToCid(), assumedSizePa);
-        return auxData;
     }
 
-    uint64 public constant BytesInInt = 8;
-
-    uint64 public constant ChecksumSize = 16;
-
-    uint64 public constant EntrySize = uint64(MERKLE_TREE_NODE_SIZE) + 2*BytesInInt + ChecksumSize;
-    
     function indexAreaStart(uint64 sizePa) internal pure returns (uint64) {
-        return uint64(sizePa) - uint64(maxIndexEntriesInDeal(sizePa))*uint64(EntrySize);
+        return uint64(sizePa) - uint64(maxIndexEntriesInDeal(sizePa))*uint64(ENTRY_SIZE);
     }
 
     function maxIndexEntriesInDeal(uint256 dealSize) internal pure returns (uint256) {
-        uint256 res = (uint256(1) << (log2Ceil(uint64(dealSize / 2048 / EntrySize)))) & ((1 << 256) - 1);
+        uint256 res = (uint256(1) << (log2Ceil(uint64(dealSize / 2048 / ENTRY_SIZE)))) & ((1 << 256) - 1);
         if (res < 4) {
             return 4;
         }
@@ -179,8 +176,6 @@ contract Proof {
         return truncatedData;
     }
 
-
-    /////
     struct SegmentDesc {
         Node commDs;
         uint64 offset;
@@ -192,7 +187,7 @@ contract Proof {
         bytes32 value;
     }
 
-    function makeDataSegmentIndexEntry(Fr32 memory commP, uint64 offset, uint64 size) internal view returns (SegmentDesc memory) {
+    function makeDataSegmentIndexEntry(Fr32 memory commP, uint64 offset, uint64 size) internal pure returns (SegmentDesc memory) {
         SegmentDesc memory en;
         en.commDs = Node(commP.value);
         en.offset = offset;
@@ -201,7 +196,7 @@ contract Proof {
         return en;
     }
 
-    function computeChecksum(SegmentDesc memory _sd) public view returns (bytes16) {
+    function computeChecksum(SegmentDesc memory _sd) public pure returns (bytes16) {
         bytes memory serialized = serialize(_sd);
         bytes32 digest = sha256(serialized);
         digest &= hex"ffffffffffffffffffffffffffffff3f";
