@@ -100,7 +100,7 @@ contract Proof {
         require(ok2, "assumedSizePau64 overflow");
         require(assumedSizePa == assumedSizePa2, "aggregator's data size doesn't match");
 
-        //validateIndexEntry(ip, assumedSizePa2);
+        validateIndexEntry(ip, assumedSizePa2);
 
         return InclusionAuxData(assumedCommPa.data.pieceCommitmentToCid(), assumedSizePa);
     }
@@ -116,8 +116,8 @@ contract Proof {
         return uint64(sizePa) - uint64(maxIndexEntriesInDeal(sizePa))*uint64(ENTRY_SIZE);
     }
 
-    function maxIndexEntriesInDeal(uint256 dealSize) internal pure returns (uint256) {
-        uint256 res = (uint256(1) << (log2Ceil(uint64(dealSize / 2048 / ENTRY_SIZE)))) & ((1 << 256) - 1);
+    function maxIndexEntriesInDeal(uint256 dealSize) internal pure returns (uint) {
+        uint res = (uint(1) << uint256(log2Ceil(uint64(dealSize / 2048 / ENTRY_SIZE)))); //& ((1 << 256) - 1);
         if (res < 4) {
             return 4;
         }
@@ -232,60 +232,31 @@ contract Proof {
 
     //////// utilities
     function leadingZeros64(uint64 x) internal pure returns (uint256) {
-        uint256 leadingZeros = 64;
-        uint256 shiftAmount = 32;
-
-        // Check the upper 32 bits
-        if (x >> 32 == 0) {
-            leadingZeros -= shiftAmount;
-            x <<= shiftAmount;
-        }
-
-        // Check the upper 16 bits
-        if (x >> 48 == 0) {
-            leadingZeros -= 16;
-            x <<= 16;
-        }
-
-        // Check the upper 8 bits
-        if (x >> 56 == 0) {
-            leadingZeros -= 8;
-            x <<= 8;
-        }
-
-        // Check the upper 4 bits
-        if (x >> 60 == 0) {
-            leadingZeros -= 4;
-            x <<= 4;
-        }
-
-        // Check the upper 2 bits
-        if (x >> 62 == 0) {
-            leadingZeros -= 2;
-            x <<= 2;
-        }
-
-        // Check the upper bit
-        if (x >> 63 == 0) {
-            leadingZeros -= 1;
-        }
-
-        return leadingZeros;
+        return 64 - len64(x);
     }
 
-    function log2Ceil(uint64 value) internal pure returns (uint256) {
+    function len64(uint64 x) internal pure returns (uint256) {
+        uint256 count = 0;
+        while (x > 0) {
+            x = x >> 1;
+            count++;
+        }
+        return count;
+    }
+
+    function log2Ceil(uint64 value) internal pure returns (int) {
         if (value <= 1) {
             return 0;
         }
         return log2Floor(value - 1) + 1;
     }
 
-    function log2Floor(uint64 value) internal pure returns (uint256) {
+    function log2Floor(uint64 value) internal pure returns (int) {
         if (value == 0) {
             return 0;
         }
-        uint256 zeros = leadingZeros64(value);
-        return uint256(64 - zeros - 1);
+        uint zeros = leadingZeros64(value);
+        return int(64 - zeros - 1);
     }
 
 }
