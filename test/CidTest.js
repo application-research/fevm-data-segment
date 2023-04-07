@@ -47,12 +47,20 @@ describe("Cid Tests", function () {
 
         it("Should be invalid length CID", async function() {
             cid = "0x0181e2039220203f46bc645b07a3ea2c04f066f939ddf7e269dd77671f9e1e61a3a3797e66512701";
-            await expect(this.cid.cidToPieceCommitment(cid)).to.be.revertedWith("wrong length of CID");
+            if (await hre.network.name === "Hyperspace") {
+                await expect(this.cid.cidToPieceCommitment(cid)).to.be.revertedWithoutReason();
+            } else {
+                await expect(this.cid.cidToPieceCommitment(cid)).to.be.revertedWith("wrong length of CID");
+            }
         });
 
         it("Should be invalid length CID", async function() {
             cid = "0xdeadbeef2020203f46bc645b07a3ea2c04f066f939ddf7e269dd77671f9e1e61a3a3797e665127";
-            await expect(this.cid.cidToPieceCommitment(cid)).to.be.revertedWith("wrong content of CID header");
+            if (await hre.network.name === "Hyperspace") {
+                await expect(this.cid.cidToPieceCommitment(cid)).to.be.revertedWithoutReason();
+            } else {
+                await expect(this.cid.cidToPieceCommitment(cid)).to.be.revertedWith("wrong content of CID header");
+            }
         });
         
 

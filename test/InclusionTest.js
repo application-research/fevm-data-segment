@@ -91,7 +91,11 @@ describe("Inclusion Tests", function () {
             for (let i = 0; i < tt.length; i++) {
                 const testCase = tt[i];
                 if (testCase.err) {
-                    await expect(this.inclusion.computeRoot(testCase.proof, testCase.subtree)).to.be.revertedWith(testCase.err);
+                    if (await hre.network.name === "Hyperspace") {
+                        await expect(this.inclusion.computeRoot(testCase.proof, testCase.subtree)).to.be.revertedWithoutReason();
+                    } else {
+                        await expect(this.inclusion.computeRoot(testCase.proof, testCase.subtree)).to.be.revertedWith(testCase.err);
+                    }
                 } else {
                     const checksum = await this.inclusion.computeChecksum(testCase.segmentDesc);
                     expect(checksum).to.equal(testCase.expectedChecksum);
@@ -206,7 +210,11 @@ describe("Inclusion Tests", function () {
             for (let i = 0; i < tt.length; i++) {
                 const testCase = tt[i];
                 if (testCase.err) {
-                    await expect(this.inclusion.computeRoot(testCase.proof, testCase.subtree)).to.be.revertedWith(testCase.err);
+                    if (await hre.network.name === "Hyperspace") {
+                        await expect(this.inclusion.computeRoot(testCase.proof, testCase.subtree)).to.be.revertedWithoutReason();
+                    } else {
+                        await expect(this.inclusion.computeRoot(testCase.proof, testCase.subtree)).to.be.revertedWith(testCase.err);
+                    }
                 } else {
                     const result = await this.inclusion.computeRoot(testCase.proof, testCase.subtree);
                     expect(result.data).to.equal(testCase.expectedRoot);
