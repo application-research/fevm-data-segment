@@ -17,10 +17,12 @@ contract Proof {
     uint64 public constant ENTRY_SIZE = uint64(MERKLE_TREE_NODE_SIZE) + 2*BYTES_IN_INT + CHECKSUM_SIZE;
     uint8 private constant bytesInDataSegmentIndexEntry = 2 * MERKLE_TREE_NODE_SIZE;
 
+    // Node is a Merkle tree node
     struct Node {
         bytes32 data;
     }
 
+    // ProofData is a Merkle proof
     struct ProofData {
         uint64 index;
         Node[] path;
