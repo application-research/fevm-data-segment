@@ -2,19 +2,19 @@
 pragma solidity ^0.8.9;
 
 // Uncomment this line to use console.log
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
+import "./Const.sol";
 
 library Cid {
-    bytes7 public constant CID_COMMP_HEADER = hex"0181e203922020";
-    uint8 public constant CID_COMMP_HEADER_LENGTH = 7;
-    uint8 public constant MERKLE_TREE_NODE_SIZE = 32;
-
     // cidToPieceCommitment converts a CID to a piece commitment.
     function cidToPieceCommitment(bytes memory _cb) public pure returns (bytes32) {
-        require(_cb.length == CID_COMMP_HEADER_LENGTH + MERKLE_TREE_NODE_SIZE, "wrong length of CID");
         require(
-            keccak256(abi.encodePacked(_cb[0], _cb[1], _cb[2], _cb[3], _cb[4], _cb[5], _cb[6])) == 
-            keccak256(abi.encodePacked(CID_COMMP_HEADER)),
+            _cb.length == CID_COMMP_HEADER_LENGTH + MERKLE_TREE_NODE_SIZE,
+            "wrong length of CID"
+        );
+        require(
+            keccak256(abi.encodePacked(_cb[0], _cb[1], _cb[2], _cb[3], _cb[4], _cb[5], _cb[6])) ==
+                keccak256(abi.encodePacked(CID_COMMP_HEADER)),
             "wrong content of CID header"
         );
         bytes32 res;
