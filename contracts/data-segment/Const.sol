@@ -7,7 +7,6 @@ pragma solidity ^0.8.9;
 // CID
 bytes7 constant CID_COMMP_HEADER = hex"0181e203922020";
 uint8 constant CID_COMMP_HEADER_LENGTH = 7;
-//uint8 constant MERKLE_TREE_NODE_SIZE = 32;
 
 // Proofs
 uint8 constant MERKLE_TREE_NODE_SIZE = 32;
