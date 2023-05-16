@@ -85,7 +85,7 @@ describe("Inclusion Tests", function () {
             for (let i = 0; i < tt.length; i++) {
                 const testCase = tt[i];
                 if (testCase.err) {
-                    if (await hre.network.name === "Hyperspace") {
+                    if (await hre.network.name === "Hyperspace" || "Calibration") {
                         await expect(this.inclusion.computeRoot(testCase.proof, testCase.subtree)).to.be.revertedWithoutReason();
                     } else {
                         await expect(this.inclusion.computeRoot(testCase.proof, testCase.subtree)).to.be.revertedWith(testCase.err);
@@ -201,7 +201,7 @@ describe("Inclusion Tests", function () {
             for (let i = 0; i < tt.length; i++) {
                 const testCase = tt[i];
                 if (testCase.err) {
-                    if (await hre.network.name === "Hyperspace") {
+                    if (await hre.network.name === "Hyperspace" || "Calibration") {
                         await expect(this.inclusion.computeRoot(testCase.proof, testCase.subtree)).to.be.revertedWithoutReason();
                     } else {
                         await expect(this.inclusion.computeRoot(testCase.proof, testCase.subtree)).to.be.revertedWith(testCase.err);

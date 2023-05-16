@@ -19,7 +19,7 @@ module.exports = {
         },
       },
     mocha: {
-      timeout: 100000000,
+      timeout: 1000000000,
     },
     defaultNetwork: "hardhat",
     networks: {
@@ -27,6 +27,11 @@ module.exports = {
           // For in-memory testing, set the blockGasLimit to a high value
           // so that you don't run into gas limit errors.
           blockGasLimit: 100000000,
+        },
+        Calibration: {
+            chainId: 314159,
+            url: "https://api.calibration.node.glif.io/rpc/v1",
+            accounts: [PRIVATE_KEY],
         },
         Hyperspace: {
             chainId: 3141,
