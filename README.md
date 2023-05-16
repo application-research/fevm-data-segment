@@ -1,9 +1,13 @@
 # FEVM Hardhat Kit
 
+## Inclusion Proof contracts 
+
+### Calibration network
+Cid deployed to: `0xb437a1FbA16e8676114f8364E7aCdaf2F36A1720`
+Proof deployed to: `0xFfB9e0320786A362760Ff484820bc079CFD83106`
+
 ## Cloning the Repo
-
 Open up your terminal (or command prompt) and navigate to a directory you would like to store this code on. Once there type in the following command:
-
 
 ```
 git clone --recurse-submodules https://github.com/filecoin-project/fevm-hardhat-kit.git
@@ -11,9 +15,7 @@ cd fevm-hardhat-kit
 yarn install
 ```
 
-
 This will clone the hardhat kit onto your computer, switch directories into the newly installed kit, and install the dependencies the kit needs to work.
-
 
 ## Get a Private Key
 
