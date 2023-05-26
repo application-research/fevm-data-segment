@@ -28,4 +28,15 @@ module.exports = async ({ deployments }) => {
     const proof = await Proof.deploy();
     await proof.deployed()
     console.log('Proof deployed to:', proof.address);
+
+    //deploy Delta Aggregator
+    const Aggregator = await ethers.getContractFactory('DeltaAggregatorOracle', {
+        libraries: {
+            Cid: cid.address,
+        },
+    });
+    console.log('Deploying DeltaAggregatorOracle...');
+    const aggregator = await Aggregator.deploy();
+    await aggregator.deployed()
+    console.log('DeltaAggregatorOracle deployed to:', aggregator.address);
 }

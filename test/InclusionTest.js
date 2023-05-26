@@ -85,10 +85,10 @@ describe("Inclusion Tests", function () {
             for (let i = 0; i < tt.length; i++) {
                 const testCase = tt[i];
                 if (testCase.err) {
-                    if (await hre.network.name === "Hyperspace" || "Calibration") {
-                        await expect(this.inclusion.computeRoot(testCase.proof, testCase.subtree)).to.be.revertedWithoutReason();
-                    } else {
+                    if (hre.network.name === "hardhat") {
                         await expect(this.inclusion.computeRoot(testCase.proof, testCase.subtree)).to.be.revertedWith(testCase.err);
+                    } else {
+                        await expect(this.inclusion.computeRoot(testCase.proof, testCase.subtree)).to.be.revertedWithoutReason();
                     }
                 } else {
                     const checksum = await this.inclusion.computeChecksum(testCase.segmentDesc);
@@ -201,10 +201,10 @@ describe("Inclusion Tests", function () {
             for (let i = 0; i < tt.length; i++) {
                 const testCase = tt[i];
                 if (testCase.err) {
-                    if (await hre.network.name === "Hyperspace" || "Calibration") {
-                        await expect(this.inclusion.computeRoot(testCase.proof, testCase.subtree)).to.be.revertedWithoutReason();
-                    } else {
+                    if (hre.network.name === "hardhat") {
                         await expect(this.inclusion.computeRoot(testCase.proof, testCase.subtree)).to.be.revertedWith(testCase.err);
+                    } else {
+                        await expect(this.inclusion.computeRoot(testCase.proof, testCase.subtree)).to.be.revertedWithoutReason();
                     }
                 } else {
                     const result = await this.inclusion.computeRoot(testCase.proof, testCase.subtree);

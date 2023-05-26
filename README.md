@@ -4,9 +4,13 @@
 
 ### Calibration network
 
-Cid deployed to: `0xb437a1FbA16e8676114f8364E7aCdaf2F36A1720`
+To deploy to `Calibration Network` run `yarn hardhat deploy --network Calibration`
 
-Proof deployed to: `0xFfB9e0320786A362760Ff484820bc079CFD83106`
+- Cid deployed to: `0x96CC58CDF4c596FDAdb0e30747009Ac291C62fC5`
+
+- Proof deployed to: `0x52351c7f67bb6fF5b8dE0c89a7DF2179E75E7Aca`
+
+- DeltaAggregatorOracle deployed to: `0x395a962C1080d1EB2d47CA7197E6398539922A78`
 
 ## Cloning the Repo
 Open up your terminal (or command prompt) and navigate to a directory you would like to store this code on. Once there type in the following command:
