@@ -1,18 +1,31 @@
-require("hardhat-deploy")
-require("hardhat-deploy-ethers")
+require("hardhat");
 
-const { networkConfig } = require("../helper-hardhat-config")
+module.exports = async function main() {
+    // This is just a convenience check
+    if (network.name === "hardhat") {
+        console.warn(
+        "You are trying to deploy a contract to the Hardhat Network, which " +
+            "gets automatically created and destroyed every time."
+        );
+    }
 
+    // ethers is available in the global scope
+    const [deployer] = await ethers.getSigners();
+    console.log(
+        "Deploying the contracts with the account:",
+        await deployer.getAddress()
+    );
 
-const private_key = network.config.accounts[0]
-const wallet = new ethers.Wallet(private_key, ethers.provider)
+    console.log("Account balance:", (await deployer.getBalance()).toString());
 
-module.exports = async ({ deployments }) => {
-    console.log("Wallet Ethereum Address:", wallet.address)
+    const accounts = await ethers.getSigners();
+    //console.log(accounts[0])
+
+    //console.log("Wallet Ethereum Address:", wallet.address)
     const chainId = network.config.chainId
 
     //deploy Cid
-    const Cid = await ethers.getContractFactory('Cid', wallet);
+    const Cid = await ethers.getContractFactory('Cid', accounts[0]);
     console.log('Deploying Cid...');
     const cid = await Cid.deploy();
     await cid.deployed()

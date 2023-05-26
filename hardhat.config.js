@@ -28,17 +28,17 @@ module.exports = {
           // so that you don't run into gas limit errors.
           blockGasLimit: 100000000,
         },
-        Calibration: {
+        calibration: {
             chainId: 314159,
             url: "https://api.calibration.node.glif.io/rpc/v1",
             accounts: [PRIVATE_KEY],
         },
-        Hyperspace: {
+        hyperspace: {
             chainId: 3141,
             url: "https://api.hyperspace.node.glif.io/rpc/v1",
             accounts: [PRIVATE_KEY],
         },
-        FilecoinMainnet: {
+        mainnet: {
             chainId: 314,
             url: "https://api.node.glif.io",
             accounts: [PRIVATE_KEY],
