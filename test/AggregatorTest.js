@@ -98,34 +98,37 @@ describe("Aggregator Tests", function () {
             rval = CIDTool.format(ipfsCid, { base: 'base16' })
             return rval.substr(1, rval.length - 1);
         }
-        /*
-        it("Should submit a callback with the expected Aux Data from EdgeUR", async function () {
-            const jsonData = fs.readFileSync("./test/edge-ur-response1.json");
-            //console.log(jsonData);
-            let input = JSON.parse(jsonData);
-            //console.log(edgeUrData);
-            console.log(ipfsCidToHex("baga6ea4seaqhig7zxtolhvxd7w66hi5ovnwuruh7svgs7futx5lthsjktgbmqci"));
-
-            verifData = {
-                // 
-                // baga6ea4seaqhig7zxtolhvxd7w66hi5ovnwuruh7svgs7futx5lthsjktgbmqci
-                // 0181e203922020741bf9bcdcb3d6e3fdbde3a3aeab6d48d0ff954d2f9693bf5733c92a9982c809
-                commPc: input.data[0].sub_piece_info.comm_pc,
-                sizePc: input.data[0].sub_piece_info.size_pc,
-            }
-            incProof = {
-                proofSubtree: {
-                    index: input.data[0].sub_piece_info.inclusion_proof.proofSubtree.index,
-                    path: input.data[0].sub_piece_info.inclusion_proof.proofSubtree.path
+        
+        it("Should submit a successful completion callback with the expected Aux Data from EdgeUR", async function () {
+            const tt = [
+                {      
+                    filename: "./test/edge-ur-response1.json"
                 },
+                {      
+                    filename: "./test/edge-ur-response2.json"
+                }
+            ]
+            for (let i = 0; i < tt.length; i++) {
+                const jsonData = fs.readFileSync(tt[i].filename);
+                let input = JSON.parse(jsonData);
+                verifData = {
+                    commPc: "0x" + ipfsCidToHex(input.data[0].sub_piece_info.comm_pc),
+                    sizePc: input.data[0].sub_piece_info.size_pc,
+                }
+                incProof = {
+                    proofSubtree: {
+                        index: input.data[0].sub_piece_info.inclusion_proof.proofSubtree.index,
+                        path: input.data[0].sub_piece_info.inclusion_proof.proofSubtree.path
+                    },
 
-                proofIndex:{
-                    index: input.data[0].sub_piece_info.inclusion_proof.proofIndex.index,
-                    path: input.data[0].sub_piece_info.inclusion_proof.proofIndex.path
-                 },
+                    proofIndex:{
+                        index: input.data[0].sub_piece_info.inclusion_proof.proofIndex.index,
+                        path: input.data[0].sub_piece_info.inclusion_proof.proofIndex.path
+                    },
+                }
+                await expect(this.aggregator.complete(1, 1234, incProof, verifData)).to.emit(this.aggregator, "CompleteAggregatorRequest").withArgs(1, 1234);
             }
-            await expect(this.aggregator.complete(1, 1234, incProof, verifData)).to.emit(this.aggregator, "CompleteAggregatorRequest").withArgs(1, 1234);
         });
-        */
+        
     });
 });
