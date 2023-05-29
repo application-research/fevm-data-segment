@@ -88,8 +88,8 @@ describe("Aggregator Tests", function () {
             /*
             const newAux = await this.aggregator.complete(1, 1234, incProof, verifData);
             console.log(newAux);
-            expect(newAux.commPa).to.equal(expectedAux.commPa);
-            expect(newAux.sizePa).to.equal(expectedAux.sizePa);
+            expect(newAux.data.commPa).to.equal(expectedAux.commPa);
+            expect(newAux.data.sizePa).to.equal(expectedAux.sizePa);
             */
         });
 
@@ -106,7 +106,10 @@ describe("Aggregator Tests", function () {
                 },
                 {      
                     filename: "./test/edge-ur-response2.json"
-                }
+                },
+                {      
+                    filename: "./test/edge-ur-response2.json"
+                },
             ]
             for (let i = 0; i < tt.length; i++) {
                 const jsonData = fs.readFileSync(tt[i].filename);
