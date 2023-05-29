@@ -6,7 +6,7 @@ pragma solidity ^0.8.9;
 
 import "./Const.sol";
 import {Cid} from "./Cid.sol";
-import {Node, ProofData, InclusionProof, InclusionVerifierData, InclusionAuxData, SegmentDesc, Fr32} from "./ProofTypes.sol";
+import {ProofData, InclusionProof, InclusionVerifierData, InclusionAuxData, SegmentDesc, Fr32} from "./ProofTypes.sol";
 import {MarketAPI} from "@zondax/filecoin-solidity/contracts/v0.8/MarketAPI.sol";
 import {MarketTypes} from "@zondax/filecoin-solidity/contracts/v0.8/types/MarketTypes.sol";
 
@@ -25,8 +25,7 @@ contract Proof {
         );
 
         bytes32 commPc = verifierData.commPc.cidToPieceCommitment();
-        Node memory nodeCommPc = Node(commPc);
-        Node memory assumedCommPa = computeRoot(ip.proofSubtree, nodeCommPc);
+        bytes32 assumedCommPa = computeRoot(ip.proofSubtree, commPc);
 
         (bool ok, uint64 assumedSizePa) = checkedMultiply(
             uint64(1) << uint64(ip.proofSubtree.path.length),
@@ -36,14 +35,14 @@ contract Proof {
 
         uint64 dataOffset = ip.proofSubtree.index * uint64(verifierData.sizePc);
         SegmentDesc memory en = makeDataSegmentIndexEntry(
-            Fr32(nodeCommPc.data),
+            Fr32(commPc),
             dataOffset,
             uint64(verifierData.sizePc)
         );
-        Node memory enNode = Node(truncatedHash(serialize(en)));
-        Node memory assumedCommPa2 = computeRoot(ip.proofIndex, enNode);
+        bytes32 enNode = truncatedHash(serialize(en));
+        bytes32 assumedCommPa2 = computeRoot(ip.proofIndex, enNode);
         require(
-            assumedCommPa.data == assumedCommPa2.data,
+            assumedCommPa == assumedCommPa2,
             "aggregator's data commitments don't match"
         );
 
@@ -55,7 +54,7 @@ contract Proof {
         require(assumedSizePa == assumedSizePa2, "aggregator's data size doesn't match");
 
         validateIndexEntry(ip, assumedSizePa2);
-        return InclusionAuxData(assumedCommPa.data.pieceCommitmentToCid(), assumedSizePa);
+        return InclusionAuxData(assumedCommPa.pieceCommitmentToCid(), assumedSizePa);
     }
 
     // computeExpectedAuxDataWithDeal computes the expected auxiliary data given an inclusion proof and the data provided by the verifier
@@ -105,12 +104,12 @@ contract Proof {
     // computeRoot computes the root of a Merkle tree given a leaf and a Merkle proof.
     function computeRoot(
         ProofData memory d,
-        Node memory subtree
-    ) public pure returns (Node memory) {
+        bytes32 subtree
+    ) public pure returns (bytes32) {
         require(d.path.length < 64, "merkleproofs with depths greater than 63 are not supported");
         require(d.index >> d.path.length == 0, "index greater than width of the tree");
 
-        Node memory carry = subtree;
+        bytes32 carry = subtree;
         uint64 index = d.index;
         uint64 right = 0;
 
@@ -127,9 +126,9 @@ contract Proof {
     }
 
     // computeNode computes the parent node of two child nodes
-    function computeNode(Node memory left, Node memory right) public pure returns (Node memory) {
-        bytes32 digest = sha256(abi.encodePacked(left.data, right.data));
-        return truncate(Node(digest));
+    function computeNode(bytes32 left, bytes32 right) public pure returns (bytes32) {
+        bytes32 digest = sha256(abi.encodePacked(left, right));
+        return truncate(digest);
     }
 
     // indexAreaStart returns the offset of the start of the index area in the deal.
@@ -168,29 +167,26 @@ contract Proof {
     }
 
     // truncate truncates a node to 254 bits.
-    function truncate(Node memory n) internal pure returns (Node memory) {
-        bytes32 truncatedData = n.data;
+    function truncate(bytes32 n) internal pure returns (bytes32) {
         // Set the two lowest-order bits of the last byte to 0
-        truncatedData &= TRUNCATOR;
-        Node memory result = Node(truncatedData);
-        return result;
+        return n & TRUNCATOR;
     }
 
     // verify verifies that the given leaf is present in the merkle tree with the given root.
     function verify(
         ProofData memory proof,
-        Node memory root,
-        Node memory leaf
+        bytes32 root,
+        bytes32 leaf
     ) public pure returns (bool) {
-        return computeRoot(proof, leaf).data == root.data;
+        return computeRoot(proof, leaf) == root;
     }
 
     // processProof computes the root of the merkle tree given the leaf and the inclusion proof.
     function processProof(
         ProofData memory proof,
-        Node memory leaf
+        bytes32 leaf
     ) internal pure returns (bytes32) {
-        bytes32 computedHash = leaf.data;
+        bytes32 computedHash = leaf;
         for (uint256 i = 0; i < proof.path.length; i++) {
             computedHash = hashNode(computedHash, proof.path[i]);
         }
@@ -198,8 +194,8 @@ contract Proof {
     }
 
     // hashNode hashes the given node with the given left child.
-    function hashNode(bytes32 left, Node memory right) public pure returns (bytes32) {
-        bytes32 truncatedData = sha256(abi.encodePacked(left, right.data));
+    function hashNode(bytes32 left, bytes32 right) public pure returns (bytes32) {
+        bytes32 truncatedData = sha256(abi.encodePacked(left, right));
         truncatedData &= TRUNCATOR;
         return truncatedData;
     }
@@ -218,7 +214,7 @@ contract Proof {
         uint64 size
     ) internal pure returns (SegmentDesc memory) {
         SegmentDesc memory en;
-        en.commDs = Node(commP.value);
+        en.commDs = bytes32(commP.value);
         en.offset = offset;
         en.size = size;
         en.checksum = computeChecksum(en);
@@ -238,7 +234,7 @@ contract Proof {
         bytes memory result = new bytes(ENTRY_SIZE);
 
         // Pad commDs
-        bytes32 commDs = sd.commDs.data;
+        bytes32 commDs = sd.commDs;
         assembly {
             mstore(add(result, 32), commDs)
         }

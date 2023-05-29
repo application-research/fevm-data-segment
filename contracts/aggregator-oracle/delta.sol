@@ -32,8 +32,4 @@ contract DeltaAggregatorOracle is AggregatorOracle, Proof {
         // return this.computeExpectedAuxDataWithDeal(_dealId, _proof, _verifierData);
         return this.computeExpectedAuxData(_proof, _verifierData);
     }
-
-    function url() public pure returns (string memory) {
-        return "https://delta.io";
-    }
 }

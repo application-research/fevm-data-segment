@@ -15,7 +15,4 @@ interface AggregatorOracle {
 
     // Callback function that is called by the aggregator
     function complete(uint256 _id, uint64 _dealId, InclusionProof memory _proof, InclusionVerifierData memory _verifierData) external returns (InclusionAuxData memory);
-
-    function url() external view returns (string memory);
-
 }

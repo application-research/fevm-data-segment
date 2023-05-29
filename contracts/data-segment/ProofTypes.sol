@@ -4,15 +4,10 @@ pragma solidity ^0.8.9;
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
 
-// Node is a Merkle tree node
-struct Node {
-    bytes32 data;
-}
-
 // ProofData is a Merkle proof
 struct ProofData {
     uint64 index;
-    Node[] path;
+    bytes32[] path;
 }
 
 // InclusionPoof is produced by the aggregator (or possibly by the SP)
@@ -44,7 +39,7 @@ struct InclusionAuxData {
 
 // SegmentDesc is a description of a data segment.
 struct SegmentDesc {
-    Node commDs;
+    bytes32 commDs;
     uint64 offset;
     uint64 size;
     bytes16 checksum;
