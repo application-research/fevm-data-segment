@@ -108,25 +108,25 @@ describe("Aggregator Tests", function () {
                     filename: "./test/edge-ur-response2.json"
                 },
                 {      
-                    filename: "./test/edge-ur-response2.json"
+                    filename: "./test/edge-ur-response3.json"
                 },
             ]
             for (let i = 0; i < tt.length; i++) {
                 const jsonData = fs.readFileSync(tt[i].filename);
                 let input = JSON.parse(jsonData);
                 verifData = {
-                    commPc: "0x" + ipfsCidToHex(input.data[0].sub_piece_info.comm_pc),
-                    sizePc: input.data[0].sub_piece_info.size_pc,
+                    commPc: "0x" + ipfsCidToHex(input.data.sub_piece_info.comm_pc),
+                    sizePc: input.data.sub_piece_info.size_pc,
                 }
                 incProof = {
                     proofSubtree: {
-                        index: input.data[0].sub_piece_info.inclusion_proof.proofSubtree.index,
-                        path: input.data[0].sub_piece_info.inclusion_proof.proofSubtree.path
+                        index: input.data.sub_piece_info.inclusion_proof.proofSubtree.index,
+                        path: input.data.sub_piece_info.inclusion_proof.proofSubtree.path
                     },
 
                     proofIndex:{
-                        index: input.data[0].sub_piece_info.inclusion_proof.proofIndex.index,
-                        path: input.data[0].sub_piece_info.inclusion_proof.proofIndex.path
+                        index: input.data.sub_piece_info.inclusion_proof.proofIndex.index,
+                        path: input.data.sub_piece_info.inclusion_proof.proofIndex.path
                     },
                 }
                 await expect(this.aggregator.complete(1, 1234, incProof, verifData)).to.emit(this.aggregator, "CompleteAggregatorRequest").withArgs(1, 1234);

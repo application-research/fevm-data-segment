@@ -1,6 +1,5 @@
 {
-    "data":[
-       {
+    "data": {
           "content_info":{
              "cid":"bafybeib6lrvnuh7um4htzq4zrlqr654wpgxt5iy65hrcv6xkk2z7psj7s4",
              "name":"random_1685297338N.dat",
@@ -62,5 +61,4 @@
              "delta_node":"https://hackfs.delta.estuary.tech"
           }
        }
-    ]
  }
