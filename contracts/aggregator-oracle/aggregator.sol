@@ -8,6 +8,7 @@ interface AggregatorOracle {
     // Event emitted when a new request is submitted
     event SubmitAggregatorRequest(uint256 indexed id, bytes cid);
 
+    // Event emitted when a request is completed
     event CompleteAggregatorRequest(uint256 indexed id, uint64 indexed dealId);
 
     // Function that submits a new request to the oracle
