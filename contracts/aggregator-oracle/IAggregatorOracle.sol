@@ -4,11 +4,10 @@ pragma solidity ^0.8.0;
 import "../data-segment/Proof.sol";
 
 // Behavioral Interface for an aggregator oracle
-interface AggregatorOracle {
+interface IDeltaAggregatorOracle {
     // Event emitted when a new request is submitted
     event SubmitAggregatorRequest(uint256 indexed id, bytes cid);
 
-    // Event emitted when a request is completed
     event CompleteAggregatorRequest(uint256 indexed id, uint64 indexed dealId);
 
     // Function that submits a new request to the oracle
@@ -16,4 +15,7 @@ interface AggregatorOracle {
 
     // Callback function that is called by the aggregator
     function complete(uint256 _id, uint64 _dealId, InclusionProof memory _proof, InclusionVerifierData memory _verifierData) external returns (InclusionAuxData memory);
+
+    // Get all deal IDs for a specified cid
+    function getAllDeals(bytes memory _cid) external returns (uint64[] memory);
 }
