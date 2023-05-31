@@ -17,7 +17,7 @@ async function deploy(name) {
 describe("Aggregator Tests", function () {
 
     before(async function() {
-        this.aggregator = await deploy('DeltaAggregatorOracle');
+        this.aggregator = await deploy('EdgeAggregatorOracle');
     });
 
     describe("Validate Aggregator", function() {

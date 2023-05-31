@@ -43,13 +43,13 @@ module.exports = async function main() {
     console.log('Proof deployed to:', proof.address);
 
     //deploy Delta Aggregator
-    const Aggregator = await ethers.getContractFactory('DeltaAggregatorOracle', {
+    const Aggregator = await ethers.getContractFactory('EdgeAggregatorOracle', {
         libraries: {
             Cid: cid.address,
         },
     });
-    console.log('Deploying DeltaAggregatorOracle...');
+    console.log('Deploying EdgeAggregatorOracle...');
     const aggregator = await Aggregator.deploy();
     await aggregator.deployed()
-    console.log('DeltaAggregatorOracle deployed to:', aggregator.address);
+    console.log('EdgeAggregatorOracle deployed to:', aggregator.address);
 }

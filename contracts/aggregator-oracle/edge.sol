@@ -7,8 +7,8 @@ pragma solidity ^0.8.0;
 import "./aggregator.sol";
 import "../data-segment/Proof.sol";
 
-// Delta that implements the AggregatorOracle interface
-contract DeltaAggregatorOracle is AggregatorOracle, Proof {
+// EdgeAggregatorOracle that implements the AggregatorOracle interface
+contract EdgeAggregatorOracle is AggregatorOracle, Proof {
 
     /* the transaction ID */
     uint256 private transactionId;
