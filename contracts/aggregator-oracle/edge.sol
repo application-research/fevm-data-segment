@@ -11,7 +11,7 @@ import { MarketAPI } from "@zondax/filecoin-solidity/contracts/v0.8/MarketAPI.so
 import { MarketTypes } from "@zondax/filecoin-solidity/contracts/v0.8/types/MarketTypes.sol";
 
 // Delta that implements the AggregatorOracle interface
-contract DeltaAggregatorOracle is IAggregatorOracle, Proof {
+contract EdgeAggregatorOracle is IAggregatorOracle, Proof {
 
     uint256 private transactionId;
     mapping (uint256 => bytes) private txIdToCid;
