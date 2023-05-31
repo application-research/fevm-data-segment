@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "../data-segment/Proof.sol";
 
 // Behavioral Interface for an aggregator oracle
-interface IDeltaAggregatorOracle {
+interface IAggregatorOracle {
     // Event emitted when a new request is submitted
     event SubmitAggregatorRequest(uint256 indexed id, bytes cid);
 
