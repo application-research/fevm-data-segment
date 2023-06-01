@@ -6,11 +6,11 @@
 
 To deploy to `Calibration Network` run `npx hardhat deploy --network calibration`
 
-- `Cid` deployed to: `0xAe1eB99d05317A4C16Fe531F0d1d877EFf61d152`
+- `Cid` deployed to: `0xB9Cbc0676D538694b38908483D87fBCfDEfae11F`
 
-- `Proof` deployed to: `0xD69D905e1568c36c0E1BBD732BE886a77040645E`
+- `Proof` deployed to: `0x0Df4f8D24104A81aa3E82089c27C5d65301E5c89`
 
-- `EdgeAggregatorOracle` deployed to: `0xc5B49E26809B8Af0d13d78c44B5D772aD9542ae4`
+- `EdgeAggregatorOracle` deployed to: `0x803F9701a89aBb65D9ae7eD6deAe2c0dBf69682B`
 
 ## Quickstart
 
