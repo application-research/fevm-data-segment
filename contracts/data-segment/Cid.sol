@@ -5,8 +5,15 @@ pragma solidity ^0.8.9;
 // import "hardhat/console.sol";
 import "./Const.sol";
 
+/**
+ * @title Cid
+ * @dev Cid is a library for converting between CIDs and piece commitments.
+ */
 library Cid {
-    // cidToPieceCommitment converts a CID to a piece commitment.
+    
+    /**
+     * @dev CID_COMMP_HEADER is the header of a CID for a piece commitment
+     */
     function cidToPieceCommitment(bytes memory _cb) public pure returns (bytes32) {
         require(
             _cb.length == CID_COMMP_HEADER_LENGTH + MERKLE_TREE_NODE_SIZE,
@@ -24,7 +31,9 @@ library Cid {
         return res;
     }
 
-    // pieceCommitmentToCid converts a piece commitment to a CID.
+    /**
+     * @dev pieceCommitmentToCid converts a piece commitment to a CID
+     */
     function pieceCommitmentToCid(bytes32 _commp) public pure returns (bytes memory) {
         bytes memory cb = abi.encodePacked(CID_COMMP_HEADER, _commp);
         return cb;
