@@ -116,6 +116,27 @@ describe("Aggregator Tests", function () {
                 {      
                     filename: "./test/edge-ur-response4.json"
                 },
+                {      
+                    filename: "./test/edge-ur-response5.json"
+                },
+                {      
+                    filename: "./test/edge-ur-response6.json"
+                },
+                {      
+                    filename: "./test/edge-ur-response7.json"
+                },
+                {      
+                    filename: "./test/edge-ur-response8.json"
+                },
+                {      
+                    filename: "./test/edge-ur-response9.json"
+                },
+                {      
+                    filename: "./test/edge-ur-response10.json"
+                },
+                {      
+                    filename: "./test/edge-ur-response11.json"
+                },
             ]
             for (let i = 0; i < tt.length; i++) {
                 const jsonData = fs.readFileSync(tt[i].filename);
