@@ -110,6 +110,9 @@ describe("Aggregator Tests", function () {
                 {      
                     filename: "./test/edge-ur-response3.json"
                 },
+                {      
+                    filename: "./test/edge-ur-response4.json"
+                },
             ]
             for (let i = 0; i < tt.length; i++) {
                 const jsonData = fs.readFileSync(tt[i].filename);
