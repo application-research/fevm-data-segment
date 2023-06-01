@@ -3,20 +3,49 @@ pragma solidity ^0.8.0;
 
 import "../data-segment/Proof.sol";
 
-// Behavioral Interface for an aggregator oracle
+/**
+ * @title IAggregatorOracle
+ * @dev IAggregatorOracle is an interface for an oracle that is used by the aggregator
+ */
 interface IAggregatorOracle {
-    // Event emitted when a new request is submitted
+    /**
+     * @dev submit submits a new request to the oracle
+     * @param _cid is the cid of the data segment
+     * @return the transaction ID
+     */
     event SubmitAggregatorRequest(uint256 indexed id, bytes cid);
 
-    // Event emitted when a request is completed
+    /**
+     * @dev complete is a callback function that is called by the aggregator
+     * @param _id is the transaction ID
+     * @param _dealId is the deal ID
+     * @param _proof is the inclusion proof
+     * @param _verifierData is the verifier data
+     * @return the aux data
+     */
     event CompleteAggregatorRequest(uint256 indexed id, uint64 indexed dealId);
 
-    // Function that submits a new request to the oracle
+    /**
+     * @dev submit submits a new request to the oracle
+     * @param _cid is the cid of the data segment
+     * @return the transaction ID
+     */
     function submit(bytes memory cid) external returns (uint256 id);
 
-    // Callback function that is called by the aggregator
+    /**
+     * @dev complete is a callback function that is called by the aggregator
+     * @param _id is the transaction ID
+     * @param _dealId is the deal ID
+     * @param _proof is the inclusion proof
+     * @param _verifierData is the verifier data
+     * @return the aux data
+     */
     function complete(uint256 _id, uint64 _dealId, InclusionProof memory _proof, InclusionVerifierData memory _verifierData) external returns (InclusionAuxData memory);
 
-    // Get all deal IDs for a specified cid
+    /**
+     * @dev getAllDeals returns all deals for a given cid
+     * @param _cid is the cid of the data segment
+     * @return the deal IDs
+     */
     function getAllDeals(bytes memory _cid) external returns (uint64[] memory);
 }

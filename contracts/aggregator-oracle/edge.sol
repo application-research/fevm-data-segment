@@ -13,14 +13,24 @@ import { MarketTypes } from "@zondax/filecoin-solidity/contracts/v0.8/types/Mark
 // Delta that implements the AggregatorOracle interface
 contract EdgeAggregatorOracle is IAggregatorOracle, Proof {
 
+    // transactionId is the ID of the transaction
     uint256 private transactionId;
+    // txIdToCid maps transaction ID to the CID
     mapping (uint256 => bytes) private txIdToCid;
+    // cidToDealIds maps CID to deal IDs
     mapping (bytes => uint64[]) private cidToDealIds; 
 
     constructor() {
         transactionId = 0;
     }
 
+    /**
+     * @dev computeExpectedAuxDataWithDeal computes the expected aux data for a deal
+     * @param _dealId is the deal ID
+     * @param _proof is the inclusion proof
+     * @param _verifierData is the verifier data
+     * @return the expected aux data
+     */
     function submit(bytes memory _cid) external returns (uint256) {
         // Increment the transaction ID
         transactionId++;    
@@ -33,6 +43,13 @@ contract EdgeAggregatorOracle is IAggregatorOracle, Proof {
         return transactionId;
     }
 
+    /* 
+     * @dev computeExpectedAuxDataWithDeal computes the expected aux data for a deal
+     * @param _dealId is the deal ID
+     * @param _proof is the inclusion proof
+     * @param _verifierData is the verifier data
+     * @return the expected aux data
+     */
     function complete(uint256 _id, uint64 _dealId, InclusionProof memory _proof, InclusionVerifierData memory _verifierData) external returns (InclusionAuxData memory) {
         require(_id <= transactionId, "Delta.complete: invalid transaction id");
         // Emit the event
@@ -52,7 +69,11 @@ contract EdgeAggregatorOracle is IAggregatorOracle, Proof {
         return this.computeExpectedAuxData(_proof, _verifierData);
     }
 
-    // allDealIds should return all the deal ids created by the aggregator
+    /**
+     * @dev getAllDeals returns all deals for a CID
+     * @param _cid is the CID
+     * @return the deal IDs
+     */
     function getAllDeals(bytes memory _cid) external view returns (uint64[] memory) {
         return cidToDealIds[_cid];
     }
