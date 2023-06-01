@@ -2,6 +2,7 @@ const { expect } = require("chai");
 const fs = require('fs');
 const CIDTool = require('cid-tool')
 
+// deploy athe aggregator contract and return the contract object
 async function deploy(name) {
     const Cid = await ethers.getContractFactory("Cid");
     const cid = await Cid.deploy();
@@ -14,12 +15,20 @@ async function deploy(name) {
     return await Contract.deploy().then(f => f.deployed());
 }
 
+// convert an IPFS CID to a hex string
+function ipfsCidToHex(ipfsCid) {
+    rval = CIDTool.format(ipfsCid, { base: 'base16' })
+    return rval.substr(1, rval.length - 1);
+}
+
 describe("Aggregator Tests", function () {
 
+    // deploy the aggregator contract
     before(async function() {
         this.aggregator = await deploy('EdgeAggregatorOracle');
     });
 
+    // test the aggregator contract functions
     describe("Validate Aggregator", function() {
         it("Should submit a valid request", async function() { 
             cid = "0x0181e2039220203f46bc645b07a3ea2c04f066f939ddf7e269dd77671f9e1e61a3a3797e665127";
@@ -93,12 +102,6 @@ describe("Aggregator Tests", function () {
             */
         });
 
-        
-        function ipfsCidToHex(ipfsCid) {
-            rval = CIDTool.format(ipfsCid, { base: 'base16' })
-            return rval.substr(1, rval.length - 1);
-        }
-        
         it("Should submit a successful completion callback with the expected Aux Data from EdgeUR", async function () {
             const tt = [
                 {      
@@ -136,6 +139,7 @@ describe("Aggregator Tests", function () {
             }
         });
 
+        // TODO: Add a test for a failed completion callback
         it("Should return all dealIDs created by the aggregator", async function() {
             verifData = {
                 commPc: "0x0181e2039220200d0e0a0100030000000000000000000000000000000000000000000000000000",
