@@ -24,12 +24,10 @@ contract EdgeAggregatorOracle is IAggregatorOracle, Proof {
         transactionId = 0;
     }
 
-    /**
-     * @dev computeExpectedAuxDataWithDeal computes the expected aux data for a deal
-     * @param _dealId is the deal ID
-     * @param _proof is the inclusion proof
-     * @param _verifierData is the verifier data
-     * @return the expected aux data
+    /* 
+     * @dev submit submits a new request to the oracle
+     * @param _cid is the cid of the data segment
+     * @return the transaction ID
      */
     function submit(bytes memory _cid) external returns (uint256) {
         // Increment the transaction ID
@@ -43,12 +41,13 @@ contract EdgeAggregatorOracle is IAggregatorOracle, Proof {
         return transactionId;
     }
 
-    /* 
-     * @dev computeExpectedAuxDataWithDeal computes the expected aux data for a deal
+    /**
+     * @dev complete is a callback function that is called by the aggregator
+     * @param _id is the transaction ID
      * @param _dealId is the deal ID
      * @param _proof is the inclusion proof
      * @param _verifierData is the verifier data
-     * @return the expected aux data
+     * @return the aux data
      */
     function complete(uint256 _id, uint64 _dealId, InclusionProof memory _proof, InclusionVerifierData memory _verifierData) external returns (InclusionAuxData memory) {
         require(_id <= transactionId, "Delta.complete: invalid transaction id");

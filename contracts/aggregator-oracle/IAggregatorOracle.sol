@@ -8,29 +8,19 @@ import "../data-segment/Proof.sol";
  * @dev IAggregatorOracle is an interface for an oracle that is used by the aggregator
  */
 interface IAggregatorOracle {
-    /**
-     * @dev submit submits a new request to the oracle
-     * @param _cid is the cid of the data segment
-     * @return the transaction ID
-     */
-    event SubmitAggregatorRequest(uint256 indexed id, bytes cid);
 
-    /**
-     * @dev complete is a callback function that is called by the aggregator
-     * @param _id is the transaction ID
-     * @param _dealId is the deal ID
-     * @param _proof is the inclusion proof
-     * @param _verifierData is the verifier data
-     * @return the aux data
-     */
-    event CompleteAggregatorRequest(uint256 indexed id, uint64 indexed dealId);
+    // Submit Aggregator Request Event
+    event SubmitAggregatorRequest(uint256 indexed _id, bytes _cid);
+
+    // Complete Aggregator Request Event
+    event CompleteAggregatorRequest(uint256 indexed _id, uint64 indexed _dealId);
 
     /**
      * @dev submit submits a new request to the oracle
      * @param _cid is the cid of the data segment
-     * @return the transaction ID
+     * @return id the transaction ID
      */
-    function submit(bytes memory cid) external returns (uint256 id);
+    function submit(bytes memory _cid) external returns (uint256 id);
 
     /**
      * @dev complete is a callback function that is called by the aggregator
