@@ -10,11 +10,20 @@ import {ProofData, InclusionProof, InclusionVerifierData, InclusionAuxData, Segm
 import {MarketAPI} from "@zondax/filecoin-solidity/contracts/v0.8/MarketAPI.sol";
 import {MarketTypes} from "@zondax/filecoin-solidity/contracts/v0.8/types/MarketTypes.sol";
 
+/**
+ * @title Proof
+ * @dev Proof is a library for verifying inclusion proofs.
+ */
 contract Proof {
     using Cid for bytes;
     using Cid for bytes32;
 
-    // computeExpectedAuxData computes the expected auxiliary data given an inclusion proof and the data provided by the verifier.
+    /**
+     * @dev computeExpectedAuxData computes the expected auxiliary data given an inclusion proof and the data provided by the verifier
+     * @param _ip is the inclusion proof
+     * @param _verifierData is the verifier data
+     * @return the expected aux data
+     */
     function computeExpectedAuxData(
         InclusionProof memory ip,
         InclusionVerifierData memory verifierData
@@ -24,15 +33,19 @@ contract Proof {
             "Size of piece provided by verifier is not power of two"
         );
 
+        // Compute the root of the subtree containing all the nodes (leafs) of the data segment
+        // The root of the subtree is the piece commitment of the data segment (commPc)
         bytes32 commPc = verifierData.commPc.cidToPieceCommitment();
         bytes32 assumedCommPa = computeRoot(ip.proofSubtree, commPc);
 
+        // check that the aggregator's data commitments dont overflow
         (bool ok, uint64 assumedSizePa) = checkedMultiply(
             uint64(1) << uint64(ip.proofSubtree.path.length),
             uint64(verifierData.sizePc)
         );
         require(ok, "assumedSizePa overflow");
 
+        // check that the aggregator's data commitments match
         uint64 dataOffset = ip.proofSubtree.index * uint64(verifierData.sizePc);
         SegmentDesc memory en = makeDataSegmentIndexEntry(
             Fr32(commPc),
@@ -46,6 +59,7 @@ contract Proof {
             "aggregator's data commitments don't match"
         );
 
+        // check that the aggregator's data size matches
         (bool ok2, uint64 assumedSizePa2) = checkedMultiply(
             uint64(1) << uint64(ip.proofIndex.path.length),
             BYTES_IN_DATA_SEGMENT_ENTRY
@@ -57,8 +71,14 @@ contract Proof {
         return InclusionAuxData(assumedCommPa.pieceCommitmentToCid(), assumedSizePa);
     }
 
-    // computeExpectedAuxDataWithDeal computes the expected auxiliary data given an inclusion proof and the data provided by the verifier
-    // and validates that the deal is activated and not terminated.
+    /**
+     * @dev computeExpectedAuxDataWithDeal computes the expected auxiliary data given an inclusion proof and the data provided by the verifier
+     * and validates that the deal is activated and not terminated.
+     * @param _dealId is the deal ID
+     * @param _ip is the inclusion proof
+     * @param _verifierData is the verifier data
+     * @return the expected aux data
+     */
     function computeExpectedAuxDataWithDeal(
         uint64 dealId,
         InclusionProof memory ip,
@@ -69,7 +89,11 @@ contract Proof {
         return inclusionAuxData;
     }
 
-    // validateInclusionAuxData validates that the deal is activated and not terminated.
+    /**
+     * @dev validateInclusionAuxData validates that the deal is activated and not terminated.
+     * @param _dealId is the deal ID
+     * @param _inclusionAuxData is the inclusion auxiliary data
+     */
     function validateInclusionAuxData(
         uint64 dealId,
         InclusionAuxData memory inclusionAuxData
@@ -90,7 +114,11 @@ contract Proof {
         require(dealDataCommitment.size == inclusionAuxData.sizePa, "Deal size doesn't match");
     }
 
-    // validateIndexEntry validates that the index entry is in the correct position in the index.
+    /**
+     * @dev validateIndexEntry validates that the index entry is in the correct position in the index.
+     * @param _ip is the inclusion proof
+     * @param _assumedSizePa2 is the assumed size of the aggregator's data
+     */
     function validateIndexEntry(InclusionProof memory ip, uint64 assumedSizePa2) internal pure {
         uint64 idxStart = indexAreaStart(assumedSizePa2);
         (bool ok3, uint64 indexOffset) = checkedMultiply(
@@ -101,7 +129,12 @@ contract Proof {
         require(indexOffset >= idxStart, "index entry at wrong position");
     }
 
-    // computeRoot computes the root of a Merkle tree given a leaf and a Merkle proof.
+    /**
+     * @dev computeRoot computes the root of a Merkle tree given a leaf and a Merkle proof.
+     * @param _d is the proof data
+     * @param _subtree is the subtree
+     * @return the root of the Merkle tree
+     */
     function computeRoot(
         ProofData memory d,
         bytes32 subtree
@@ -125,18 +158,31 @@ contract Proof {
         return carry;
     }
 
-    // computeNode computes the parent node of two child nodes
+    /**
+     * @dev computeNode computes the parent node of two child nodes
+     * @param _left is the left child
+     * @param _right is the right child
+     * @return the parent node
+     */
     function computeNode(bytes32 left, bytes32 right) public pure returns (bytes32) {
         bytes32 digest = sha256(abi.encodePacked(left, right));
         return truncate(digest);
     }
 
-    // indexAreaStart returns the offset of the start of the index area in the deal.
+    /**
+     * @dev indexAreaStart returns the offset of the start of the index area in the deal.
+     * @param _sizePa is the size of the aggregator's data
+     * @return the offset of the start of the index area in the deal
+     */
     function indexAreaStart(uint64 sizePa) internal pure returns (uint64) {
         return uint64(sizePa) - uint64(maxIndexEntriesInDeal(sizePa)) * uint64(ENTRY_SIZE);
     }
 
-    // maxIndexEntriesInDeal returns the maximum number of index entries that can be stored in a deal of the given size.
+    /**
+     * @dev maxIndexEntriesInDeal returns the maximum number of index entries that can be stored in a deal of the given size.
+     * @param _dealSize is the size of the deal
+     * @return the maximum number of index entries that can be stored in a deal of the given size
+     */
     function maxIndexEntriesInDeal(uint256 dealSize) internal pure returns (uint) {
         uint res = (uint(1) << uint256(log2Ceil(uint64(dealSize / 2048 / ENTRY_SIZE)))); //& ((1 << 256) - 1);
         if (res < 4) {
@@ -145,7 +191,11 @@ contract Proof {
         return res;
     }
 
-    // isPow2 returns true if the given value is a power of 2.
+    /**
+     * @dev isPow2 returns true if the given value is a power of 2.
+     * @param _value is the value
+     * @return true if the given value is a power of 2
+     */
     function isPow2(uint64 value) internal pure returns (bool) {
         if (value == 0) {
             return true;
@@ -153,7 +203,13 @@ contract Proof {
         return (value & (value - 1)) == 0;
     }
 
-    // checkedMultiply multiplies two uint64 values and returns the result and a boolean indicating whether the multiplication
+    /**
+     * @dev checkedMultiply multiplies two uint64 values and returns the result and a boolean indicating whether the multiplication
+     * overflowed.
+     * @param _a is the first value
+     * @param _b is the second value
+     * @return the result and a boolean indicating whether the multiplication overflowed
+     */
     function checkedMultiply(uint64 a, uint64 b) internal pure returns (bool, uint64) {
         unchecked {
             // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
@@ -166,13 +222,23 @@ contract Proof {
         }
     }
 
-    // truncate truncates a node to 254 bits.
+    /**
+     * @dev truncate truncates a node to 254 bits.
+     * @param _n is the node
+     * @return the truncated node
+     */
     function truncate(bytes32 n) internal pure returns (bytes32) {
         // Set the two lowest-order bits of the last byte to 0
         return n & TRUNCATOR;
     }
 
-    // verify verifies that the given leaf is present in the merkle tree with the given root.
+    /**
+     * @dev verify verifies that the given leaf is present in the merkle tree with the given root.
+     * @param _proof is the proof data
+     * @param _root is the root of the Merkle tree
+     * @param _leaf is the leaf
+     * @return true if the given leaf is present in the merkle tree with the given root
+     */
     function verify(
         ProofData memory proof,
         bytes32 root,
@@ -181,7 +247,12 @@ contract Proof {
         return computeRoot(proof, leaf) == root;
     }
 
-    // processProof computes the root of the merkle tree given the leaf and the inclusion proof.
+    /**
+     * @dev processProof computes the root of the merkle tree given the leaf and the inclusion proof.
+     * @param _proof is the proof data
+     * @param _leaf is the leaf
+     * @return the root of the merkle tree
+     */
     function processProof(
         ProofData memory proof,
         bytes32 leaf
@@ -193,21 +264,36 @@ contract Proof {
         return computedHash;
     }
 
-    // hashNode hashes the given node with the given left child.
+    /**
+     * @dev hashNode hashes the given node with the given left child.
+     * @param _left is the left child
+     * @param _right is the right child
+     * @return the hash of the given node with the given left child
+     */
     function hashNode(bytes32 left, bytes32 right) public pure returns (bytes32) {
         bytes32 truncatedData = sha256(abi.encodePacked(left, right));
         truncatedData &= TRUNCATOR;
         return truncatedData;
     }
 
-    // truncatedHash computes the truncated hash of the given data.
+    /**
+     * @dev truncatedHash computes the truncated hash of the given data.
+     * @param _data is the data
+     * @return the truncated hash of the given data
+     */
     function truncatedHash(bytes memory data) public pure returns (bytes32) {
         bytes32 truncatedData = sha256(abi.encodePacked(data));
         truncatedData &= TRUNCATOR;
         return truncatedData;
     }
 
-    // makeDataSegmentIndexEntry creates a new data segment index entry.
+    /**
+     * @dev makeDataSegmentIndexEntry creates a new data segment index entry.
+     * @param _commP is the piece commitment
+     * @param _offset is the offset
+     * @param _size is the size
+     * @return the new data segment index entry
+     */
     function makeDataSegmentIndexEntry(
         Fr32 memory commP,
         uint64 offset,
@@ -221,7 +307,11 @@ contract Proof {
         return en;
     }
 
-    // computeChecksum computes the checksum of the given segment description.
+    /**
+     * @dev computeChecksum computes the checksum of the given segment description.
+     * @param _sd is the segment description
+     * @return the checksum of the given segment description
+     */
     function computeChecksum(SegmentDesc memory _sd) public pure returns (bytes16) {
         bytes memory serialized = serialize(_sd);
         bytes32 digest = sha256(serialized);
@@ -229,7 +319,11 @@ contract Proof {
         return bytes16(digest);
     }
 
-    // serialize serializes the given segment description.
+    /**
+     * @dev serialize serializes the given segment description.
+     * @param _sd is the segment description
+     * @return the serialized segment description
+     */
     function serialize(SegmentDesc memory sd) public pure returns (bytes memory) {
         bytes memory result = new bytes(ENTRY_SIZE);
 
@@ -257,12 +351,20 @@ contract Proof {
         return result;
     }
 
-    // leadingZeros64 returns the number of leading zeros in the given uint64.
+    /**
+     * @dev leadingZeros64 returns the number of leading zeros in the given uint64.
+     * @param _x is the uint64
+     * @return the number of leading zeros in the given uint64
+     */
     function leadingZeros64(uint64 x) internal pure returns (uint256) {
         return 64 - len64(x);
     }
 
-    // len64 returns the number of bits in the given uint64.
+    /**
+     * @dev len64 returns the number of bits in the given uint64.
+     * @param _x is the uint64
+     * @return the number of bits in the given uint64
+     */
     function len64(uint64 x) internal pure returns (uint256) {
         uint256 count = 0;
         while (x > 0) {
@@ -272,7 +374,11 @@ contract Proof {
         return count;
     }
 
-    // log2Ceil returns the ceiling of the base-2 logarithm of the given value.
+    /**
+     * @dev log2Ceil returns the ceiling of the base-2 logarithm of the given value.
+     * @param _value is the value
+     * @return the ceiling of the base-2 logarithm of the given value
+     */
     function log2Ceil(uint64 value) internal pure returns (int) {
         if (value <= 1) {
             return 0;
@@ -280,7 +386,11 @@ contract Proof {
         return log2Floor(value - 1) + 1;
     }
 
-    // log2Floor returns the floor of the base-2 logarithm of the given value.
+    /**
+     * @dev log2Floor returns the floor of the base-2 logarithm of the given value.
+     * @param _value is the value
+     * @return the floor of the base-2 logarithm of the given value
+     */
     function log2Floor(uint64 value) internal pure returns (int) {
         if (value == 0) {
             return 0;
