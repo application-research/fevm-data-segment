@@ -25,35 +25,35 @@ contract Proof {
      * @return the expected aux data
      */
     function computeExpectedAuxData(
-        InclusionProof memory ip,
-        InclusionVerifierData memory verifierData
+        InclusionProof memory _ip,
+        InclusionVerifierData memory _verifierData
     ) public pure returns (InclusionAuxData memory) {
         require(
-            isPow2(uint64(verifierData.sizePc)),
+            isPow2(uint64(_verifierData.sizePc)),
             "Size of piece provided by verifier is not power of two"
         );
 
         // Compute the root of the subtree containing all the nodes (leafs) of the data segment
         // The root of the subtree is the piece commitment of the data segment (commPc)
-        bytes32 commPc = verifierData.commPc.cidToPieceCommitment();
-        bytes32 assumedCommPa = computeRoot(ip.proofSubtree, commPc);
+        bytes32 commPc = _verifierData.commPc.cidToPieceCommitment();
+        bytes32 assumedCommPa = computeRoot(_ip.proofSubtree, commPc);
 
         // check that the aggregator's data commitments dont overflow
         (bool ok, uint64 assumedSizePa) = checkedMultiply(
-            uint64(1) << uint64(ip.proofSubtree.path.length),
-            uint64(verifierData.sizePc)
+            uint64(1) << uint64(_ip.proofSubtree.path.length),
+            uint64(_verifierData.sizePc)
         );
         require(ok, "assumedSizePa overflow");
 
         // check that the aggregator's data commitments match
-        uint64 dataOffset = ip.proofSubtree.index * uint64(verifierData.sizePc);
+        uint64 dataOffset = _ip.proofSubtree.index * uint64(_verifierData.sizePc);
         SegmentDesc memory en = makeDataSegmentIndexEntry(
             Fr32(commPc),
             dataOffset,
-            uint64(verifierData.sizePc)
+            uint64(_verifierData.sizePc)
         );
         bytes32 enNode = truncatedHash(serialize(en));
-        bytes32 assumedCommPa2 = computeRoot(ip.proofIndex, enNode);
+        bytes32 assumedCommPa2 = computeRoot(_ip.proofIndex, enNode);
         require(
             assumedCommPa == assumedCommPa2,
             "aggregator's data commitments don't match"
@@ -61,13 +61,13 @@ contract Proof {
 
         // check that the aggregator's data size matches
         (bool ok2, uint64 assumedSizePa2) = checkedMultiply(
-            uint64(1) << uint64(ip.proofIndex.path.length),
+            uint64(1) << uint64(_ip.proofIndex.path.length),
             BYTES_IN_DATA_SEGMENT_ENTRY
         );
         require(ok2, "assumedSizePau64 overflow");
         require(assumedSizePa == assumedSizePa2, "aggregator's data size doesn't match");
 
-        validateIndexEntry(ip, assumedSizePa2);
+        validateIndexEntry(_ip, assumedSizePa2);
         return InclusionAuxData(assumedCommPa.pieceCommitmentToCid(), assumedSizePa);
     }
 
@@ -80,12 +80,12 @@ contract Proof {
      * @return the expected aux data
      */
     function computeExpectedAuxDataWithDeal(
-        uint64 dealId,
-        InclusionProof memory ip,
-        InclusionVerifierData memory verifierData
+        uint64 _dealId,
+        InclusionProof memory _ip,
+        InclusionVerifierData memory _verifierData
     ) public returns (InclusionAuxData memory) {
-        InclusionAuxData memory inclusionAuxData = computeExpectedAuxData(ip, verifierData);
-        validateInclusionAuxData(dealId, inclusionAuxData);
+        InclusionAuxData memory inclusionAuxData = computeExpectedAuxData(_ip, _verifierData);
+        validateInclusionAuxData(_dealId, inclusionAuxData);
         return inclusionAuxData;
     }
 
@@ -95,34 +95,34 @@ contract Proof {
      * @param _inclusionAuxData is the inclusion auxiliary data
      */
     function validateInclusionAuxData(
-        uint64 dealId,
-        InclusionAuxData memory inclusionAuxData
+        uint64 _dealId,
+        InclusionAuxData memory _inclusionAuxData
     ) internal {
         // check that the deal is not terminated
         MarketTypes.GetDealActivationReturn memory dealActivation = MarketAPI.getDealActivation(
-            dealId
+            _dealId
         );
         require(dealActivation.terminated <= 0, "Deal is terminated");
         require(dealActivation.activated > 0, "Deal is not activated");
 
         MarketTypes.GetDealDataCommitmentReturn memory dealDataCommitment = MarketAPI
-            .getDealDataCommitment(dealId);
+            .getDealDataCommitment(_dealId);
         require(
-            keccak256(dealDataCommitment.data) == keccak256(inclusionAuxData.commPa),
+            keccak256(dealDataCommitment.data) == keccak256(_inclusionAuxData.commPa),
             "Deal commD doesn't match"
         );
-        require(dealDataCommitment.size == inclusionAuxData.sizePa, "Deal size doesn't match");
+        require(dealDataCommitment.size == _inclusionAuxData.sizePa, "Deal size doesn't match");
     }
 
     /**
      * @dev validateIndexEntry validates that the index entry is in the correct position in the index.
      * @param _ip is the inclusion proof
-     * @param _assumedSizePa2 is the assumed size of the aggregator's data
+     * @param _assumedSizePa is the assumed size of the aggregator's data
      */
-    function validateIndexEntry(InclusionProof memory ip, uint64 assumedSizePa2) internal pure {
-        uint64 idxStart = indexAreaStart(assumedSizePa2);
+    function validateIndexEntry(InclusionProof memory _ip, uint64 _assumedSizePa) internal pure {
+        uint64 idxStart = indexAreaStart(_assumedSizePa);
         (bool ok3, uint64 indexOffset) = checkedMultiply(
-            ip.proofIndex.index,
+            _ip.proofIndex.index,
             BYTES_IN_DATA_SEGMENT_ENTRY
         );
         require(ok3, "indexOffset overflow");
@@ -136,22 +136,22 @@ contract Proof {
      * @return the root of the Merkle tree
      */
     function computeRoot(
-        ProofData memory d,
-        bytes32 subtree
+        ProofData memory _d,
+        bytes32 _subtree
     ) public pure returns (bytes32) {
-        require(d.path.length < 64, "merkleproofs with depths greater than 63 are not supported");
-        require(d.index >> d.path.length == 0, "index greater than width of the tree");
+        require(_d.path.length < 64, "merkleproofs with depths greater than 63 are not supported");
+        require(_d.index >> _d.path.length == 0, "index greater than width of the tree");
 
-        bytes32 carry = subtree;
-        uint64 index = d.index;
+        bytes32 carry = _subtree;
+        uint64 index = _d.index;
         uint64 right = 0;
 
-        for (uint64 i = 0; i < d.path.length; i++) {
+        for (uint64 i = 0; i < _d.path.length; i++) {
             (right, index) = (index & 1, index >> 1);
             if (right == 1) {
-                carry = computeNode(d.path[i], carry);
+                carry = computeNode(_d.path[i], carry);
             } else {
-                carry = computeNode(carry, d.path[i]);
+                carry = computeNode(carry, _d.path[i]);
             }
         }
 
@@ -164,8 +164,8 @@ contract Proof {
      * @param _right is the right child
      * @return the parent node
      */
-    function computeNode(bytes32 left, bytes32 right) public pure returns (bytes32) {
-        bytes32 digest = sha256(abi.encodePacked(left, right));
+    function computeNode(bytes32 _left, bytes32 _right) public pure returns (bytes32) {
+        bytes32 digest = sha256(abi.encodePacked(_left, _right));
         return truncate(digest);
     }
 
@@ -174,8 +174,8 @@ contract Proof {
      * @param _sizePa is the size of the aggregator's data
      * @return the offset of the start of the index area in the deal
      */
-    function indexAreaStart(uint64 sizePa) internal pure returns (uint64) {
-        return uint64(sizePa) - uint64(maxIndexEntriesInDeal(sizePa)) * uint64(ENTRY_SIZE);
+    function indexAreaStart(uint64 _sizePa) internal pure returns (uint64) {
+        return uint64(_sizePa) - uint64(maxIndexEntriesInDeal(_sizePa)) * uint64(ENTRY_SIZE);
     }
 
     /**
@@ -183,8 +183,8 @@ contract Proof {
      * @param _dealSize is the size of the deal
      * @return the maximum number of index entries that can be stored in a deal of the given size
      */
-    function maxIndexEntriesInDeal(uint256 dealSize) internal pure returns (uint) {
-        uint res = (uint(1) << uint256(log2Ceil(uint64(dealSize / 2048 / ENTRY_SIZE)))); //& ((1 << 256) - 1);
+    function maxIndexEntriesInDeal(uint256 _dealSize) internal pure returns (uint) {
+        uint res = (uint(1) << uint256(log2Ceil(uint64(_dealSize / 2048 / ENTRY_SIZE)))); //& ((1 << 256) - 1);
         if (res < 4) {
             return 4;
         }
@@ -196,11 +196,11 @@ contract Proof {
      * @param _value is the value
      * @return true if the given value is a power of 2
      */
-    function isPow2(uint64 value) internal pure returns (bool) {
-        if (value == 0) {
+    function isPow2(uint64 _value) internal pure returns (bool) {
+        if (_value == 0) {
             return true;
         }
-        return (value & (value - 1)) == 0;
+        return (_value & (_value - 1)) == 0;
     }
 
     /**
@@ -210,14 +210,14 @@ contract Proof {
      * @param _b is the second value
      * @return the result and a boolean indicating whether the multiplication overflowed
      */
-    function checkedMultiply(uint64 a, uint64 b) internal pure returns (bool, uint64) {
+    function checkedMultiply(uint64 _a, uint64 _b) internal pure returns (bool, uint64) {
         unchecked {
             // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
             // benefit is lost if 'b' is also tested.
             // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522
-            if (a == 0) return (true, 0);
-            uint64 c = a * b;
-            if (c / a != b) return (false, 0);
+            if (_a == 0) return (true, 0);
+            uint64 c = _a * _b;
+            if (c / _a != _b) return (false, 0);
             return (true, c);
         }
     }
@@ -227,9 +227,9 @@ contract Proof {
      * @param _n is the node
      * @return the truncated node
      */
-    function truncate(bytes32 n) internal pure returns (bytes32) {
+    function truncate(bytes32 _n) internal pure returns (bytes32) {
         // Set the two lowest-order bits of the last byte to 0
-        return n & TRUNCATOR;
+        return _n & TRUNCATOR;
     }
 
     /**
@@ -240,11 +240,11 @@ contract Proof {
      * @return true if the given leaf is present in the merkle tree with the given root
      */
     function verify(
-        ProofData memory proof,
-        bytes32 root,
-        bytes32 leaf
+        ProofData memory _proof,
+        bytes32 _root,
+        bytes32 _leaf
     ) public pure returns (bool) {
-        return computeRoot(proof, leaf) == root;
+        return computeRoot(_proof, _leaf) == _root;
     }
 
     /**
@@ -254,12 +254,12 @@ contract Proof {
      * @return the root of the merkle tree
      */
     function processProof(
-        ProofData memory proof,
-        bytes32 leaf
+        ProofData memory _proof,
+        bytes32 _leaf
     ) internal pure returns (bytes32) {
-        bytes32 computedHash = leaf;
-        for (uint256 i = 0; i < proof.path.length; i++) {
-            computedHash = hashNode(computedHash, proof.path[i]);
+        bytes32 computedHash = _leaf;
+        for (uint256 i = 0; i < _proof.path.length; i++) {
+            computedHash = hashNode(computedHash, _proof.path[i]);
         }
         return computedHash;
     }
@@ -270,8 +270,8 @@ contract Proof {
      * @param _right is the right child
      * @return the hash of the given node with the given left child
      */
-    function hashNode(bytes32 left, bytes32 right) public pure returns (bytes32) {
-        bytes32 truncatedData = sha256(abi.encodePacked(left, right));
+    function hashNode(bytes32 _left, bytes32 _right) public pure returns (bytes32) {
+        bytes32 truncatedData = sha256(abi.encodePacked(_left, _right));
         truncatedData &= TRUNCATOR;
         return truncatedData;
     }
@@ -281,8 +281,8 @@ contract Proof {
      * @param _data is the data
      * @return the truncated hash of the given data
      */
-    function truncatedHash(bytes memory data) public pure returns (bytes32) {
-        bytes32 truncatedData = sha256(abi.encodePacked(data));
+    function truncatedHash(bytes memory _data) public pure returns (bytes32) {
+        bytes32 truncatedData = sha256(abi.encodePacked(_data));
         truncatedData &= TRUNCATOR;
         return truncatedData;
     }
@@ -295,14 +295,14 @@ contract Proof {
      * @return the new data segment index entry
      */
     function makeDataSegmentIndexEntry(
-        Fr32 memory commP,
-        uint64 offset,
-        uint64 size
+        Fr32 memory _commP,
+        uint64 _offset,
+        uint64 _size
     ) internal pure returns (SegmentDesc memory) {
         SegmentDesc memory en;
-        en.commDs = bytes32(commP.value);
-        en.offset = offset;
-        en.size = size;
+        en.commDs = bytes32(_commP.value);
+        en.offset = _offset;
+        en.size = _size;
         en.checksum = computeChecksum(en);
         return en;
     }
@@ -324,28 +324,28 @@ contract Proof {
      * @param _sd is the segment description
      * @return the serialized segment description
      */
-    function serialize(SegmentDesc memory sd) public pure returns (bytes memory) {
+    function serialize(SegmentDesc memory _sd) public pure returns (bytes memory) {
         bytes memory result = new bytes(ENTRY_SIZE);
 
         // Pad commDs
-        bytes32 commDs = sd.commDs;
+        bytes32 commDs = _sd.commDs;
         assembly {
             mstore(add(result, 32), commDs)
         }
 
         // Pad offset (little-endian)
         for (uint i = 0; i < 8; i++) {
-            result[MERKLE_TREE_NODE_SIZE + i] = bytes1(uint8(sd.offset >> (i * 8)));
+            result[MERKLE_TREE_NODE_SIZE + i] = bytes1(uint8(_sd.offset >> (i * 8)));
         }
 
         // Pad size (little-endian)
         for (uint i = 0; i < 8; i++) {
-            result[MERKLE_TREE_NODE_SIZE + 8 + i] = bytes1(uint8(sd.size >> (i * 8)));
+            result[MERKLE_TREE_NODE_SIZE + 8 + i] = bytes1(uint8(_sd.size >> (i * 8)));
         }
 
         // Pad checksum
         for (uint i = 0; i < 16; i++) {
-            result[MERKLE_TREE_NODE_SIZE + 16 + i] = sd.checksum[i];
+            result[MERKLE_TREE_NODE_SIZE + 16 + i] = _sd.checksum[i];
         }
 
         return result;
@@ -356,8 +356,8 @@ contract Proof {
      * @param _x is the uint64
      * @return the number of leading zeros in the given uint64
      */
-    function leadingZeros64(uint64 x) internal pure returns (uint256) {
-        return 64 - len64(x);
+    function leadingZeros64(uint64 _x) internal pure returns (uint256) {
+        return 64 - len64(_x);
     }
 
     /**
@@ -365,10 +365,10 @@ contract Proof {
      * @param _x is the uint64
      * @return the number of bits in the given uint64
      */
-    function len64(uint64 x) internal pure returns (uint256) {
+    function len64(uint64 _x) internal pure returns (uint256) {
         uint256 count = 0;
-        while (x > 0) {
-            x = x >> 1;
+        while (_x > 0) {
+            _x = _x >> 1;
             count++;
         }
         return count;
@@ -379,11 +379,11 @@ contract Proof {
      * @param _value is the value
      * @return the ceiling of the base-2 logarithm of the given value
      */
-    function log2Ceil(uint64 value) internal pure returns (int) {
-        if (value <= 1) {
+    function log2Ceil(uint64 _value) internal pure returns (int) {
+        if (_value <= 1) {
             return 0;
         }
-        return log2Floor(value - 1) + 1;
+        return log2Floor(_value - 1) + 1;
     }
 
     /**
@@ -391,11 +391,11 @@ contract Proof {
      * @param _value is the value
      * @return the floor of the base-2 logarithm of the given value
      */
-    function log2Floor(uint64 value) internal pure returns (int) {
-        if (value == 0) {
+    function log2Floor(uint64 _value) internal pure returns (int) {
+        if (_value == 0) {
             return 0;
         }
-        uint zeros = leadingZeros64(value);
+        uint zeros = leadingZeros64(_value);
         return int(64 - zeros - 1);
     }
 }
