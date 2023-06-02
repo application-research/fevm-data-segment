@@ -1,27 +1,39 @@
+const FormData = require('form-data');
 const axios = require('axios');
 const { ethers } = require('hardhat');
+
+require('dotenv').config();
+
 
 async function main() {
 
   // Get args
-  const rpcEndpoint = process.argv[2]; // http://127.0.0.1:1234/rpc/v1
-  const apiEndpoint = process.argv[3];
-  const contractAddress = process.argv[4];
+  const rpcEndpoint = process.env.rpcEndpoint;
+  const apiEndpoint = process.env.apiEndpoint + "/content/add";
+  const contractAddress = process.env.contractAddress;
+  const cidContractAddress = process.env.contractAddress;
+  const API_KEY = process.env.API_KEY;
 
   // Create a new ethers provider
   const provider = new ethers.providers.JsonRpcProvider(rpcEndpoint);
 
   // Compile the contract
-  const contractName = 'EdgeURContract';
+  const contractName = 'EdgeAggregatorOracle';
+  const Cid = await ethers.getContractFactory("Cid");
+  // const contractFactory = await ethers.getContractFactory(contractName);
+  const contractFactory = await ethers.getContractFactory(contractName, {
+    libraries: {
+      Cid: cidContractAddress,
+    },
+  });
   
-  const contractFactory = await ethers.getContractFactory(contractName);
   const contract = await contractFactory.attach(contractAddress)
 
   console.log("Listening for events on contract at address:", contractAddress);
   const contractABI = contract.interface.abi;
 
   // Specify the event name you want to listen to
-  const eventName = 'SubmitAggregatorRequest(uint256,bytes)';
+  const eventName = 'StoreURIEvent(string)';
 
   // Specify the HTTP API endpoint and the POST request payload
 
@@ -40,33 +52,36 @@ async function main() {
     );
 
     const uri = event[0];
-    const regex = /^(.*?:\/\/)/;
-    const match = uri.match(regex);
+    let data;
 
-    if (!(match && match.length > 0)) {
-        console.error("Can't parse URI:", uri)
-        return;
-    }
-        
-    const prefix = match[0]; // Extract the prefix URI scheme
-
-    if (prefix != "ipfs://") {
-        console.error("We only accept ipfs:// uris at the moment", uri)
-        return;
-    }
-
-    const cid = uri.slice(prefix.length); // Extract the remaining part of the URI
-    
-    const postData = {
-        cid: cid,
-        miners: ['t017840'],
+    // Fetch the data from the supplied URI
+    try {
+      console.log(`Fetching data from: ${uri}`)
+      response = await axios.get(uri, {
+        responseType: 'stream',
+      });
+      data = response.data;
+      console.log(`Success, fetched ${response.headers["content-length"]} bytes`)
+    } catch (error) {
+      console.error('Data fetch failed:', error.response);
+      return null;
     };
+    
+    const formData = new FormData();
+    formData.append('data', data);
 
-    console.log("Sending payload to: ", apiEndpoint, postData);
+    const postHeaders = {
+      headers: {
+          Authorization: `Bearer ${API_KEY}`,
+          ...formData.getHeaders()
+      }
+    }
+
+    console.log("Sending payload to: ", apiEndpoint);
 
     // Make the HTTP API POST request with the event data
     try {
-      const response = await axios.post(apiEndpoint, postData);
+      const response = await axios.post(apiEndpoint, formData, postHeaders);
       console.log('API response:', response.data);
     } catch (error) {
       console.error('API request failed:', error.message);
@@ -90,6 +105,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('An error occurred:', error);
+  console.error('An error occurrd:', error);
   process.exit(1);
 });
