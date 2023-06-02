@@ -105,37 +105,37 @@ describe("Aggregator Tests", function () {
         it("Should submit a successful completion callback with the expected Aux Data from EdgeUR", async function () {
             const tt = [
                 {      
-                    filename: "./test/edge-ur-response1.json"
+                    filename: "./test/data/edge-ur-response1.json"
                 },
                 {      
-                    filename: "./test/edge-ur-response2.json"
+                    filename: "./test/data/edge-ur-response2.json"
                 },
                 {      
-                    filename: "./test/edge-ur-response3.json"
+                    filename: "./test/data/edge-ur-response3.json"
                 },
                 {      
-                    filename: "./test/edge-ur-response4.json"
+                    filename: "./test/data/edge-ur-response4.json"
                 },
                 {      
-                    filename: "./test/edge-ur-response5.json"
+                    filename: "./test/data/edge-ur-response5.json"
                 },
                 {      
-                    filename: "./test/edge-ur-response6.json"
+                    filename: "./test/data/edge-ur-response6.json"
                 },
                 {      
-                    filename: "./test/edge-ur-response7.json"
+                    filename: "./test/data/edge-ur-response7.json"
                 },
                 {      
-                    filename: "./test/edge-ur-response8.json"
+                    filename: "./test/data/edge-ur-response8.json"
                 },
                 {      
-                    filename: "./test/edge-ur-response9.json"
+                    filename: "./test/data/edge-ur-response9.json"
                 },
                 {      
-                    filename: "./test/edge-ur-response10.json"
+                    filename: "./test/data/edge-ur-response10.json"
                 },
                 {      
-                    filename: "./test/edge-ur-response11.json"
+                    filename: "./test/data/edge-ur-response11.json"
                 },
             ]
             for (let i = 0; i < tt.length; i++) {
