@@ -17,11 +17,10 @@ async function waitForNonZeroDealId(url) {
       const response = await axios.get(url);
       const payload = response.data;
       
-      if (payload.data.deal_info.deal_id == 0 ) {
-      // if (payload.data.deal_info.deal_id != 0 ) {
+      if (payload.data.deal_info.deal_id != 0 ) {
         return payload;
       }
-      console.log('waiting to request again in 5 minutes');
+      console.log('deal has not been negotiated yet, waiting to request again in 5 minutes');
       await sleep(300000); // Sleep for 5 minutes (300,000 milliseconds)
     } catch (error) {
       console.error('Error occurred:', error);
@@ -34,40 +33,6 @@ async function waitForNonZeroDealId(url) {
 function ipfsCidToHex(ipfsCid) {
   rval = CIDTool.format(ipfsCid, { base: 'base16' })
   return rval.substr(1, rval.length - 1);
-}
-
-async function tester() {
-
-  // Get args
-  const rpcEndpoint = process.env.rpcEndpoint;
-  const apiEndpoint = process.env.apiEndpoint + "/content/add";
-  const contractAddress = process.env.contractAddress;
-  const cidContractAddress = process.env.contractAddress;
-  const API_KEY = process.env.API_KEY;
-
-  // Create a new ethers provider
-  const provider = new ethers.providers.JsonRpcProvider(rpcEndpoint);
-
-  // Compile the contract
-  const contractName = 'EdgeAggregatorOracle';
-  const Cid = await ethers.getContractFactory("Cid");
-  // const contractFactory = await ethers.getContractFactory(contractName);
-  const contractFactory = await ethers.getContractFactory(contractName, {
-    libraries: {
-      Cid: cidContractAddress,
-    },
-  });
-  
-  const contract = await contractFactory.attach(contractAddress)
-
-  try {
-    const url = 'https://hackfs.edge.estuary.tech/open/status/content/10'; // Replace with your URL
-    const res = await waitForNonZeroDealId(url)
-    console.log('Non-zero deal_id:', res);
-    executecompletionCallback(res, contract);
-  } catch (error) {
-    console.error('Error:', error);
-  }
 }
 
 async function executecompletionCallback(input, aggregator) {
@@ -90,7 +55,7 @@ async function executecompletionCallback(input, aggregator) {
   console.log(resp);
 }
 
-async function main2() {
+async function main() {
 
   // Get args
   const rpcEndpoint = process.env.rpcEndpoint;
