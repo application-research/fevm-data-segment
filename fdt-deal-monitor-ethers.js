@@ -4,8 +4,55 @@ const { ethers } = require('hardhat');
 
 require('dotenv').config();
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function waitForNonZeroDealId(url) {
+  let dealId = 0;
+
+  while (dealId === 0) {
+    try {
+      const response = await axios.get(url);
+
+      console.log(response.data);
+
+      const payload = response.data;
+      
+      if (payload.data.deal_info.deal_id != 0 ) {
+        
+        return payload;
+      }
+      console.log('waiting to request again in 5 minutes');
+      await sleep(300000); // Sleep for 5 minutes (300,000 milliseconds)
+    } catch (error) {
+      console.error('Error occurred:', error);
+    }
+  }
+
+  return dealId;
+}
+
+function ipfsCidToHex(ipfsCid) {
+  rval = CIDTool.format(ipfsCid, { base: 'base16' })
+  return rval.substr(1, rval.length - 1);
+}
 
 async function main() {
+  try {
+    const url = 'https://hackfs.edge.estuary.tech/open/status/content/10'; // Replace with your URL
+    const res = await waitForNonZeroDealId(url)
+    console.log('Non-zero deal_id:', res);
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+async function main1() {
+
+}
+
+async function main2() {
 
   // Get args
   const rpcEndpoint = process.env.rpcEndpoint;
@@ -86,6 +133,7 @@ async function main() {
     } catch (error) {
       console.error('API request failed:', error.message);
     }
+  
   };
 
   // Subscribe to the event
