@@ -69,6 +69,7 @@ async function worker(id, payload, done) {
 
     const url = statusApiEndpoint + responseContents.ID;
     const res = await waitForNonZeroDealId(url);
+    //const res = await waitForNonZeroDealId('https://hackfs-coeus.estuary.tech/edge/open/status/content/1000');
     console.log('Non-zero deal_id:', res);
 
     // call completion callback
@@ -165,7 +166,7 @@ async function executecompletionCallback(input, aggregator) {
           path: input.data.sub_piece_info.inclusion_proof.proofIndex.path
       },
   }
-  resp = await aggregator.complete(1, 1234, incProof, verifData);
+  resp = await contract.complete(1, 1234, incProof, verifData);
   console.log(resp);
 }
 
