@@ -8,18 +8,8 @@ const axios = require('axios');
 const CIDTool = require('cid-tool');
 const fs = require('fs');
 
-function worker(id, payload, done) {
-    console.log('Processing job', id, payload);
-    done();
-} 
-
-var queue = Jobs(db, worker);
-var stream = queue.runningStream();
-stream.on('data', function(d) {
-  var jobId = d.key;
-  var work = d.value;
-  console.log('pending job id: %s, work: %j', jobId, work);
-});
+// state
+const state = new Map();
 
 // Get args
 const rpcEndpoint = process.env.rpcEndpoint;
@@ -28,6 +18,8 @@ const statusApiEndpoint = process.env.apiEndpoint + "/open/status/content/";
 const contractAddress = process.env.contractAddress;
 const cidContractAddress = process.env.contractAddress;
 const API_KEY = process.env.API_KEY;
+
+var contract;
 
 async function init() {
     // Create a new ethers provider
@@ -42,49 +34,66 @@ async function init() {
     },
     });
 
-    this.contract = await contractFactory.attach(contractAddress)
+    contract = await contractFactory.attach(contractAddress)
 }
+
+async function worker(id, payload, done) {
+  await queue.del(id);
+  console.log('Processing job', id, payload);
+  state.set(id, payload);
+
+  if (!contract) { 
+    await init();
+  }
+
+  const formData = new FormData();
+  formData.append('data', fs.createReadStream(payload.path))
+  const postHeaders = {
+    headers: {
+        Authorization: `Bearer ${API_KEY}`,
+        ...formData.getHeaders()
+    }
+  }
+
+  console.log("Sending payload to: ", addApiEndpoint);
+
+  // Make the HTTP API POST request with the event data
+  try {
+    const response = await axios.post(addApiEndpoint, formData, postHeaders);
+    console.log('API response:', response.data);
+    responseContents = response.data.contents[0]
+    cid = "0x" + ipfsCidToHex(responseContents.cid)
+    console.log(cid);
+    let submitResponse = await contract.submit(cid);
+    console.log(submitResponse);
+
+    const url = statusApiEndpoint + responseContents.ID;
+    const res = await waitForNonZeroDealId(url);
+    console.log('Non-zero deal_id:', res);
+
+    // call completion callback
+    executecompletionCallback(res);
+    done();
+  } catch (error) {
+    console.error('API request failed:', error.message);
+    throw error;
+  } finally {
+    // Remove the job from the queue
+    await queue.del(id);
+  } 
+} 
+
+var queue = Jobs(db, worker);
+var stream = queue.runningStream();
+stream.on('data', function(d) {
+  var jobId = d.key;
+  var work = d.value;
+  console.log('pending job id: %s, work: %j', jobId, work);
+});
 
 // Submit a job to the database
 async function submitJob(file) {  
-    var jobId = queue.push(file, async function(err) {
-        if (err) {
-          console.error('Error pushing work into the queue', err.stack);
-        }
-        const formData = new FormData();
-        formData.append('data', fs.createReadStream(file.path))
-        const postHeaders = {
-          headers: {
-              Authorization: `Bearer ${API_KEY}`,
-              ...formData.getHeaders()
-          }
-        }
-
-        console.log("Sending payload to: ", addApiEndpoint);
-
-        // Make the HTTP API POST request with the event data
-        try {
-          const response = await axios.post(addApiEndpoint, formData, postHeaders);
-          console.log('API response:', response.data);
-          responseContents = response.data.contents[0]
-          cid = "0x" + ipfsCidToHex(responseContents.cid)
-          console.log(cid);
-          let submitResponse = await this.contract.submit(cid);
-          console.log(submitResponse);
-
-          const url = statusApiEndpoint + responseContents.ID;
-          const res = await waitForNonZeroDealId(url);
-          console.log('Non-zero deal_id:', res);
-
-          // call completion callback
-          executecompletionCallback(res);
-
-        } catch (error) {
-          console.error('API request failed:', error.message);
-          throw error;
-        }
-    });
-
+    var jobId = await queue.push(file);
     return jobId;
 }
 
@@ -99,9 +108,6 @@ async function getJobStatus(jobId) {
   });
   */
 
-  
-  const values = await db.get(jobId);
-  console.log(values);
 
   const job = await queue.runningStream();
   console.log(job);

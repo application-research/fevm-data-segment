@@ -43,5 +43,3 @@ app.listen(port, async () => {
   console.log(`App listening on port ${port}`);
   init();
 });
-
-// // curl --form 'file=@"/Users/jay/Downloads/banana.jpeg"' localhost:3000/upload
