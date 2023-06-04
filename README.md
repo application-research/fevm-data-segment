@@ -43,11 +43,11 @@ You can call the contract to get it to pass an existing CID to the Edge-UR insta
 
 To deploy to `Calibration Network` run `npx hardhat deploy --network calibration`
 
-- `Cid` deployed to: `0xB9Cbc0676D538694b38908483D87fBCfDEfae11F`
+- `Cid` deployed to: `0x57AdD0E4ACa42C8C31531672B9B9E11B37076a99`
 
-- `Proof` deployed to: `0x0Df4f8D24104A81aa3E82089c27C5d65301E5c89`
+- `Proof` deployed to: `0xa6E03821BF7c7e6A86F521C360CedB7Cf461122d`
 
-- `EdgeAggregatorOracle` deployed to: `0x803F9701a89aBb65D9ae7eD6deAe2c0dBf69682B`
+- `EdgeAggregatorOracle` deployed to: `0x13653C684011CF94843636C490025489A6397673`
 
 ## Quickstart
 
