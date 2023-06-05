@@ -30,7 +30,7 @@ There is an example contract in `contracts` that has the event and a method you 
 
 You need to specify the RPC endpoint of a Filecoin node, the Edge-UR API address, and the contract address, in the `.env` file, then start the daemon with:
 
-1. `node fdt-deal-monitor-ethers.js`
+1. `node examples/fdt-deal-monitor`
 
 ### Invoking the contract
 
