@@ -79,40 +79,31 @@ contract Proof {
      * @param _verifierData is the verifier data
      * @return the expected aux data
      */
-    function computeExpectedAuxDataWithDeal(
-        uint64 _dealId,
-        InclusionProof memory _ip,
-        InclusionVerifierData memory _verifierData
-    ) public returns (InclusionAuxData memory) {
-        InclusionAuxData memory inclusionAuxData = computeExpectedAuxData(_ip, _verifierData);
-        validateInclusionAuxData(_dealId, inclusionAuxData);
-        return inclusionAuxData;
-    }
+    // function computeExpectedAuxDataWithDeal(
+    //     uint64 _dealId,
+    //     InclusionProof memory _ip,
+    //     InclusionVerifierData memory _verifierData
+    // ) public returns (InclusionAuxData memory) {
+    //     InclusionAuxData memory inclusionAuxData = computeExpectedAuxData(_ip, _verifierData);
+    //     validateInclusionAuxData(_dealId, inclusionAuxData);
+    //     return inclusionAuxData;
+    // }
 
     /**
      * @dev validateInclusionAuxData validates that the deal is activated and not terminated.
      * @param _dealId is the deal ID
      * @param _inclusionAuxData is the inclusion auxiliary data
      */
-    function validateInclusionAuxData(
-        uint64 _dealId,
-        InclusionAuxData memory _inclusionAuxData
-    ) internal {
-        // check that the deal is not terminated
-        MarketTypes.GetDealActivationReturn memory dealActivation = MarketAPI.getDealActivation(
-            _dealId
-        );
-        require(dealActivation.terminated <= 0, "Deal is terminated");
-        require(dealActivation.activated > 0, "Deal is not activated");
+    // function validateInclusionAuxData(uint64 _dealId, InclusionAuxData memory _inclusionAuxData) internal {
+    //     // check that the deal is not terminated
+    //     MarketTypes.GetDealActivationReturn memory dealActivation = MarketAPI.getDealActivation(_dealId);
+    //     require(dealActivation.terminated <= 0, "Deal is terminated");
+    //     require(dealActivation.activated > 0, "Deal is not activated");
 
-        MarketTypes.GetDealDataCommitmentReturn memory dealDataCommitment = MarketAPI
-            .getDealDataCommitment(_dealId);
-        require(
-            keccak256(dealDataCommitment.data) == keccak256(_inclusionAuxData.commPa),
-            "Deal commD doesn't match"
-        );
-        require(dealDataCommitment.size == _inclusionAuxData.sizePa, "Deal size doesn't match");
-    }
+    //     MarketTypes.GetDealDataCommitmentReturn memory dealDataCommitment = MarketAPI.getDealDataCommitment(_dealId);
+    //     require(keccak256(dealDataCommitment.data) == keccak256(_inclusionAuxData.commPa), "Deal commD doesn't match");
+    //     require(dealDataCommitment.size == _inclusionAuxData.sizePa, "Deal size doesn't match");
+    // }
 
     /**
      * @dev validateIndexEntry validates that the index entry is in the correct position in the index.
