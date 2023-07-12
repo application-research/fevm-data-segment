@@ -25,7 +25,7 @@ contract EdgeAggregatorOracle is IAggregatorOracle, Proof {
     }
 
     /* 
-     * @dev submit submits a new request to the oracle
+     * @dev submit submits a new request to the aggregator
      * @param _cid is the cid of the data segment
      * @return the transaction ID
      */
